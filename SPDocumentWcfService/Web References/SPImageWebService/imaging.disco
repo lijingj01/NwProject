@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<discovery xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://schemas.xmlsoap.org/disco/">
+  <contractRef ref="https://nwscportal.nw-sc.com/_vti_bin/imaging.asmx?wsdl" docRef="https://nwscportal.nw-sc.com/_vti_bin/imaging.asmx" xmlns="http://schemas.xmlsoap.org/disco/scl/" />
+  <soap address="https://nwscportal.nw-sc.com/_vti_bin/imaging.asmx" xmlns:q1="http://schemas.microsoft.com/sharepoint/soap/ois/" binding="q1:ImagingSoap" xmlns="http://schemas.xmlsoap.org/disco/soap/" />
+  <soap address="https://nwscportal.nw-sc.com/_vti_bin/imaging.asmx" xmlns:q2="http://schemas.microsoft.com/sharepoint/soap/ois/" binding="q2:ImagingSoap12" xmlns="http://schemas.xmlsoap.org/disco/soap/" />
+</discovery>
