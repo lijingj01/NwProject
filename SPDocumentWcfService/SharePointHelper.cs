@@ -2985,6 +2985,7 @@ namespace SPDocumentWcfService
         //        return items[index];
         //    }
         //}
+        /*
         /// <summary>
         /// 通过数据名称来得到对应的列表数据
         /// </summary>
@@ -3015,7 +3016,7 @@ namespace SPDocumentWcfService
                 }
             }
         }
-
+        */
     }
 
     #endregion

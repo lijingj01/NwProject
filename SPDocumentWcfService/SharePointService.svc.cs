@@ -24,6 +24,7 @@ namespace SPDocumentWcfService
             SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
             SPListItems items = docHelper.GetSPListItems(ListName);
             return items;
+            //return new SPDocumentWcfService.SPListItems();
         }
         /// <summary>
         /// 获取指定列表库按条件查询的列表项
