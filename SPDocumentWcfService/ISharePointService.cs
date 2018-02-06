@@ -24,6 +24,17 @@ namespace SPDocumentWcfService
         [OperationContract]
         SPWcfFolder CreateSPFolder(SPSetting setting, string strListName, string strFolderName, DateTime dtCreated);
 
+        /// <summary>
+        /// 文件夹改名操作
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strListName">列表名称</param>
+        /// <param name="strOldFolderName">文件夹原名称</param>
+        /// <param name="strNewFolderName">文件夹新名称</param>
+        /// <returns></returns>
+        [OperationContract]
+        bool UpdateFolderName(SPSetting setting, string strListName, string strOldFolderName, string strNewFolderName);
+
         #region 文件上传相关方法
 
 
@@ -101,6 +112,19 @@ namespace SPDocumentWcfService
         [OperationContract]
         [ServiceKnownType(typeof(SPWcfDocument))]
         List<SPWcfDocument> GetFolderDocuments(SPSetting setting, string ListName, int iFolderId);
+        #endregion
+
+        #region 文件删除的方法
+        /// <summary>
+        /// 删除指定的文件
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="ListName">文档库名称</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <param name="FileName">文件名称</param>
+        /// <returns></returns>
+        [OperationContract]
+        bool DeleteFile(SPSetting setting, string ListName, int iFolderId, string FileName);
         #endregion
 
         #endregion

@@ -35,7 +35,9 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public SPListItems GetSPListItemsBySearch(SPSetting setting, string ListName, Dictionary<string, string> SearchList)
         {
-            throw new NotImplementedException();
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SPListItems items = docHelper.GetSPListItems(ListName, SearchList);
+            return items;
         }
 
         /// <summary>
@@ -80,6 +82,20 @@ namespace SPDocumentWcfService
                 UniqueId = folder.UniqueId
             };
             return wFolder;
+        }
+
+        /// <summary>
+        /// 文件夹改名操作
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strListName">列表名称</param>
+        /// <param name="strOldFolderName">文件夹原名称</param>
+        /// <param name="strNewFolderName">文件夹新名称</param>
+        /// <returns></returns>
+        public bool UpdateFolderName(SPSetting setting, string strListName, string strOldFolderName, string strNewFolderName)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            return docHelper.UpdateFolderName(strListName, strOldFolderName, strNewFolderName);
         }
 
         #endregion
@@ -173,6 +189,24 @@ namespace SPDocumentWcfService
             SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
             string strReturn = docHelper.UploadFile(strFileName, fileData, ListName, FolderId, out IsUpload);
             return strReturn;
+        }
+
+        #endregion
+
+        #region 文件删除相关方法
+
+        /// <summary>
+        /// 删除指定的文件
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="ListName">文档库名称</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <param name="FileName">文件名称</param>
+        /// <returns></returns>
+        public bool DeleteFile(SPSetting setting, string ListName, int iFolderId, string FileName)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            return docHelper.DeleteFile(ListName, FileName, iFolderId);
         }
 
         #endregion

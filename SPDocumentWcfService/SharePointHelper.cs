@@ -440,7 +440,169 @@ namespace SPDocumentWcfService
             }
         }
 
+        /// <summary>
+        /// 删除文件时候将上传记录标注为已删除
+        /// </summary>
+        /// <param name="strListName">文档库名称</param>
+        /// <param name="iFolderId">文件夹编号（无文件夹就是0）</param>
+        /// <param name="FileUniqueId">文件编号</param>
+        /// <param name="strDelFileFullRef">完整路径</param>
+        private void DelUpFileLog(string strListName,int iFolderId,Guid FileUniqueId, string strDelFileFullRef)
+        {
+            try
+            {
+                Data.FileLogDataClassesDataContext dataContext = new Data.FileLogDataClassesDataContext();
+                //查询记录
+                Data.Files file = dataContext.Files.FirstOrDefault<Data.Files>(c => c.ListName == strListName & c.FolderId == iFolderId & c.UniqueId == FileUniqueId);
+                if(file != null)
+                {
+                    file.IsDel = true;
+                    file.Modified = DateTime.Now;
+                    dataContext.SubmitChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                string strTitle = "删除文件【" + strDelFileFullRef + "】上传记录时出现错误";
+                string strBody = ex.Message + "<br>";
+                strBody += ex.TargetSite;
+                strBody += ex.StackTrace;
+
+                EMailHelper.SendMail("lijingj", strTitle, strBody);
+            }
+        }
+
         #endregion
+
+        #endregion
+
+        #region 文件删除操作
+
+        /// <summary>
+        /// 删除指定文档库的指定文件
+        /// </summary>
+        /// <param name="ListName">文档库名</param>
+        /// <param name="FileName">文件名</param>
+        /// <returns></returns>
+        public bool DeleteFile(string ListName, string FileName)
+        {
+            try
+            {
+                bool IsDelFile = false;
+
+                #region 先获取文件信息
+                XmlDocument xmlFindDoc = new System.Xml.XmlDocument();
+
+                XmlNode ndQuery = xmlFindDoc.CreateNode(XmlNodeType.Element, "Query", "");
+                XmlNode ndViewFields = xmlFindDoc.CreateNode(XmlNodeType.Element, "ViewFields", "");
+                XmlNode ndQueryOptions = xmlFindDoc.CreateNode(XmlNodeType.Element, "QueryOptions", "");
+                ndQueryOptions.InnerXml =
+                    "<IncludeMandatoryColumns>FALSE</IncludeMandatoryColumns>" +
+                    "<DateInUtc>TRUE</DateInUtc>";
+
+                ndViewFields.InnerXml = "<FieldRef Name='ID' />";
+                ndQuery.InnerXml = "<Where><Eq><FieldRef Name='FileLeafRef'/><Value Type='Text'>" + FileName + "</Value></Eq></Where>";
+
+                SPListWebService.Lists listHelper = new SPListWebService.Lists()
+                {
+                    Url = FullWebUrl + ListUrl,
+                    Credentials = SPCredential
+                };
+                XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery,
+                        null, null, ndQueryOptions, null);
+                SPCostList list = GetListInfo(ListName);
+                //document.SPList = list;
+                SPCostDocument document = new SPCostDocument(ndListItems, list, null);
+                #endregion
+
+                #region 选择删除文件
+
+                StringBuilder strBatch = new StringBuilder();
+                strBatch.AppendFormat("<Method ID='{0}' Cmd='Delete'>", document.ID);
+                strBatch.AppendFormat("<Field Name='ID'>{0}</Field>", document.ID);
+                strBatch.AppendFormat("<Field Name='FileRef'>{0}</Field>", document.DelFileFullRef);
+                strBatch.Append("</Method>");
+
+                XmlDocument xmlDoc = new System.Xml.XmlDocument();
+
+                System.Xml.XmlElement elBatch = xmlDoc.CreateElement("Batch");
+
+                elBatch.InnerXml = strBatch.ToString();
+
+                XmlNode ndReturn = listHelper.UpdateListItems(ListName, elBatch);//第一个参数是列表名
+                IsDelFile = true;
+                #endregion
+
+                #region 将上传记录标注为已删除
+                DelUpFileLog(ListName, 0, document.UniqueId, document.DelFileFullRef);
+                #endregion
+
+                return IsDelFile;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        /// <summary>
+        /// 删除指定文档库的指定文件
+        /// </summary>
+        /// <param name="ListName">文档库名</param>
+        /// <param name="FileName">文件名</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <returns></returns>
+        public bool DeleteFile(string ListName, string FileName, int iFolderId)
+        {
+            try
+            {
+                bool IsDelFile = false;
+                SPCostDocument document;
+                if (iFolderId > 0)
+                {
+                    SPCostFolder folder = GetFolderInfo(ListName, iFolderId);
+                    document = GetCostDocument(FileName, ListName, folder);
+                }
+                else
+                {
+                    document = GetCostDocument(FileName, ListName);
+                }
+
+                #region 选择删除文件
+
+                SPListWebService.Lists listHelper = new SPListWebService.Lists()
+                {
+                    Url = FullWebUrl + ListUrl,
+                    Credentials = SPCredential
+                };
+
+                StringBuilder strBatch = new StringBuilder();
+                strBatch.AppendFormat("<Method ID='{0}' Cmd='Delete'>", document.ID);
+                strBatch.AppendFormat("<Field Name='ID'>{0}</Field>", document.ID);
+                strBatch.AppendFormat("<Field Name='FileRef'>{0}</Field>", document.DelFileFullRef);
+                strBatch.Append("</Method>");
+
+                XmlDocument xmlDoc = new System.Xml.XmlDocument();
+
+                System.Xml.XmlElement elBatch = xmlDoc.CreateElement("Batch");
+
+                elBatch.InnerXml = strBatch.ToString();
+
+                XmlNode ndReturn = listHelper.UpdateListItems(ListName, elBatch);//第一个参数是列表名
+                IsDelFile = true;
+                #endregion
+
+                #region 将上传记录标注为已删除
+                DelUpFileLog(ListName, iFolderId, document.UniqueId, document.DelFileFullRef);
+                #endregion
+
+                return IsDelFile;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
 
         #endregion
 
@@ -547,9 +709,10 @@ namespace SPDocumentWcfService
         /// </summary>
         /// <param name="strListName">列表名称</param>
         /// <param name="strOldFolderName">文件夹原名称</param>
-        /// <param name="strNewFolderName">文件夹新名词</param>
-        public void UpdateFolderName(string strListName, string strOldFolderName, string strNewFolderName)
+        /// <param name="strNewFolderName">文件夹新名称</param>
+        public bool UpdateFolderName(string strListName, string strOldFolderName, string strNewFolderName)
         {
+            bool isUpdate = false;
             //获取文件夹的编号
             SPListWebService.Lists listHelper = new SPListWebService.Lists()
             {
@@ -576,44 +739,25 @@ namespace SPDocumentWcfService
             elBatch.InnerXml = strBatch.ToString();
 
             XmlNode ndReturn = listHelper.UpdateListItems(strListName, elBatch);
+
+            #region 更新文件夹名称成功后需要同步更新数据
+            if(ndReturn.InnerText == "0x00000000")
+            {
+                isUpdate = true;
+                Data.FileLogDataClassesDataContext fileDBContext = new Data.FileLogDataClassesDataContext();
+                Data.Folders dFolder = fileDBContext.Folders.FirstOrDefault<Data.Folders>(c => c.ListName == strListName & c.FolderId == folder.ID & c.FolderUniqueId == folder.UniqueId);
+                if(dFolder != null)
+                {
+                    dFolder.FolderName = strNewFolderName;
+                    dFolder.FileLeafRef = strNewFolderName;
+                    dFolder.FileRef = dFolder.ParentUrl + "/" + strNewFolderName;
+                    fileDBContext.SubmitChanges();
+                }
+            }
+            #endregion
+
+            return isUpdate;
         }
-        /*
-		private SPCostFolder GetOldFolderInfo(string ListName, string FolderName)
-		{
-			//获取文件夹的编号
-			SP07ListWebService.Lists listHelper = new SP07ListWebService.Lists()
-			{
-				Url = FullOldWebUrl + ListUrl,
-				Credentials = OldSPCredential
-			};
-			XmlDocument xmlDoc = new System.Xml.XmlDocument();
-			XmlNode ndQuery = xmlDoc.CreateNode(XmlNodeType.Element, "Query", "");
-			XmlNode ndViewFields = xmlDoc.CreateNode(XmlNodeType.Element, "ViewFields", "");
-			XmlNode ndQueryOptions = xmlDoc.CreateNode(XmlNodeType.Element, "QueryOptions", "");
-
-			//查询限制
-			ndQueryOptions.InnerXml =
-				"<IncludeMandatoryColumns>FALSE</IncludeMandatoryColumns>" +
-				"<DateInUtc>TRUE</DateInUtc>";
-			//查询字段
-			//ndViewFields.InnerXml = "<FieldRef Name='ID' />";
-			//查询条件
-			ndQuery.InnerXml = "<Where><Eq><FieldRef Name='FileLeafRef'/><Value Type='Text'>" + FolderName + "</Value></Eq></Where>";
-			XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery,
-				null, null, ndQueryOptions, null);
-
-			SPCostFolder folder = new SPCostFolder(ndListItems);
-			folder.ListName = ListName;
-			if (folder.ID == 0)
-			{
-				//没有文件夹就需要创建
-				int iFolderId = CreateOldFolder(ListName, FolderName);
-				folder = GetOldFolderInfo(ListName, iFolderId);
-			}
-
-			return folder;
-		}
-		*/
 
         /// <summary>
         /// 获取指定的文件夹

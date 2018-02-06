@@ -332,8 +332,9 @@ namespace SPDocumentWcfService
         }
         #endregion
     }
-
-    [DataContract]
+    [Serializable]
+    [CollectionDataContract]
+    [KnownType(typeof(SPWcfDocument))]
     public class SPWcfDocuments : List<SPWcfDocument> { }
 
     /// <summary>
