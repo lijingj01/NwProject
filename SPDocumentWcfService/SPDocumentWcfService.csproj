@@ -148,6 +148,7 @@
     <Compile Include="SPListItemService.svc.cs">
       <DependentUpon>SPListItemService.svc</DependentUpon>
     </Compile>
+    <Compile Include="StringHelper.cs" />
     <Compile Include="Web References\SPCopyWebService\Reference.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

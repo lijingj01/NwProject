@@ -262,6 +262,11 @@ namespace SPDocumentWcfService
             };
             //获取文件夹信息
             SPCostFolder folder = GetFolderInfo(ListName, FolderName);
+            if (folder.ID == 0)
+            {
+                //文件夹未创建需要创建一个
+                folder = CreateSPFolder(ListName, FolderName, DateTime.Now);
+            }
 
             string strNewFullDocUrl = SPBaseSite + "/" + folder.FileRef + "/" + strFileName;
             IsUpload = false;
@@ -447,14 +452,14 @@ namespace SPDocumentWcfService
         /// <param name="iFolderId">文件夹编号（无文件夹就是0）</param>
         /// <param name="FileUniqueId">文件编号</param>
         /// <param name="strDelFileFullRef">完整路径</param>
-        private void DelUpFileLog(string strListName,int iFolderId,Guid FileUniqueId, string strDelFileFullRef)
+        private void DelUpFileLog(string strListName, int iFolderId, Guid FileUniqueId, string strDelFileFullRef)
         {
             try
             {
                 Data.FileLogDataClassesDataContext dataContext = new Data.FileLogDataClassesDataContext();
                 //查询记录
                 Data.Files file = dataContext.Files.FirstOrDefault<Data.Files>(c => c.ListName == strListName & c.FolderId == iFolderId & c.UniqueId == FileUniqueId);
-                if(file != null)
+                if (file != null)
                 {
                     file.IsDel = true;
                     file.Modified = DateTime.Now;
@@ -712,6 +717,69 @@ namespace SPDocumentWcfService
         /// <param name="strNewFolderName">文件夹新名称</param>
         public bool UpdateFolderName(string strListName, string strOldFolderName, string strNewFolderName)
         {
+
+            bool isUpdate = false;
+            //原文件夹名称和改名的文件夹名称相同就没有必要进行修改
+            if (strOldFolderName == strNewFolderName)
+            {
+                isUpdate = true;
+            }
+            else
+            {
+                //获取文件夹的编号
+                SPListWebService.Lists listHelper = new SPListWebService.Lists()
+                {
+                    Url = FullWebUrl + ListUrl,
+                    Credentials = SPCredential
+                };
+                SPCostList list = GetListInfo(strListName);
+
+                SPCostFolder folder = GetFolderInfo(strListName, list.ListUrl, strOldFolderName);
+
+                StringBuilder strBatch = new StringBuilder();
+                strBatch.AppendFormat("<Method ID='{0}' Cmd='Update'>", folder.ID);
+                strBatch.AppendFormat("<Field Name='ID'>{0}</Field>", folder.ID);
+                strBatch.AppendFormat("<Field Name='owshiddenversion'>{0}</Field>", 1);
+                strBatch.AppendFormat("<Field Name='FileRef'>{0}</Field>", folder.FileFullRef);
+                strBatch.AppendFormat("<Field Name='FSObjType'>{0}</Field>", 1);
+                strBatch.AppendFormat("<Field Name='BaseName'>{0}</Field>", strNewFolderName);
+                strBatch.Append("</Method>");
+
+                XmlDocument xmlUpdateDoc = new System.Xml.XmlDocument();
+
+                System.Xml.XmlElement elBatch = xmlUpdateDoc.CreateElement("Batch");
+
+                elBatch.InnerXml = strBatch.ToString();
+
+                XmlNode ndReturn = listHelper.UpdateListItems(strListName, elBatch);
+
+                #region 更新文件夹名称成功后需要同步更新数据
+                if (ndReturn.InnerText == "0x00000000")
+                {
+                    isUpdate = true;
+                    Data.FileLogDataClassesDataContext fileDBContext = new Data.FileLogDataClassesDataContext();
+                    Data.Folders dFolder = fileDBContext.Folders.FirstOrDefault<Data.Folders>(c => c.ListName == strListName & c.FolderId == folder.ID & c.FolderUniqueId == folder.UniqueId);
+                    if (dFolder != null)
+                    {
+                        dFolder.FolderName = strNewFolderName;
+                        dFolder.FileLeafRef = strNewFolderName;
+                        dFolder.FileRef = dFolder.ParentUrl + "/" + strNewFolderName;
+                        fileDBContext.SubmitChanges();
+                    }
+                }
+                #endregion
+            }
+            return isUpdate;
+        }
+
+        /// <summary>
+        /// 修改文件夹名称
+        /// </summary>
+        /// <param name="strListName">列表名称</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <param name="strNewFolderName">文件夹新名称</param>
+        public bool UpdateFolderName(string strListName, int iFolderId, string strNewFolderName)
+        {
             bool isUpdate = false;
             //获取文件夹的编号
             SPListWebService.Lists listHelper = new SPListWebService.Lists()
@@ -721,41 +789,49 @@ namespace SPDocumentWcfService
             };
             SPCostList list = GetListInfo(strListName);
 
-            SPCostFolder folder = GetFolderInfo(strListName, list.ListUrl, strOldFolderName);
+            SPCostFolder folder = GetFolderInfo(strListName, iFolderId);
 
-            StringBuilder strBatch = new StringBuilder();
-            strBatch.AppendFormat("<Method ID='{0}' Cmd='Update'>", folder.ID);
-            strBatch.AppendFormat("<Field Name='ID'>{0}</Field>", folder.ID);
-            strBatch.AppendFormat("<Field Name='owshiddenversion'>{0}</Field>", 1);
-            strBatch.AppendFormat("<Field Name='FileRef'>{0}</Field>", folder.FileFullRef);
-            strBatch.AppendFormat("<Field Name='FSObjType'>{0}</Field>", 1);
-            strBatch.AppendFormat("<Field Name='BaseName'>{0}</Field>", strNewFolderName);
-            strBatch.Append("</Method>");
+            //原文件夹名称和改名的文件夹名称相同就没有必要进行修改
+            if (folder.FileLeafRef != strNewFolderName)
+            {
 
-            XmlDocument xmlUpdateDoc = new System.Xml.XmlDocument();
+                StringBuilder strBatch = new StringBuilder();
+                strBatch.AppendFormat("<Method ID='{0}' Cmd='Update'>", folder.ID);
+                strBatch.AppendFormat("<Field Name='ID'>{0}</Field>", folder.ID);
+                strBatch.AppendFormat("<Field Name='owshiddenversion'>{0}</Field>", 1);
+                strBatch.AppendFormat("<Field Name='FileRef'>{0}</Field>", folder.FileFullRef);
+                strBatch.AppendFormat("<Field Name='FSObjType'>{0}</Field>", 1);
+                strBatch.AppendFormat("<Field Name='BaseName'>{0}</Field>", strNewFolderName);
+                strBatch.Append("</Method>");
 
-            System.Xml.XmlElement elBatch = xmlUpdateDoc.CreateElement("Batch");
+                XmlDocument xmlUpdateDoc = new System.Xml.XmlDocument();
 
-            elBatch.InnerXml = strBatch.ToString();
+                System.Xml.XmlElement elBatch = xmlUpdateDoc.CreateElement("Batch");
 
-            XmlNode ndReturn = listHelper.UpdateListItems(strListName, elBatch);
+                elBatch.InnerXml = strBatch.ToString();
 
-            #region 更新文件夹名称成功后需要同步更新数据
-            if(ndReturn.InnerText == "0x00000000")
+                XmlNode ndReturn = listHelper.UpdateListItems(strListName, elBatch);
+
+                #region 更新文件夹名称成功后需要同步更新数据
+                if (ndReturn.InnerText == "0x00000000")
+                {
+                    isUpdate = true;
+                    Data.FileLogDataClassesDataContext fileDBContext = new Data.FileLogDataClassesDataContext();
+                    Data.Folders dFolder = fileDBContext.Folders.FirstOrDefault<Data.Folders>(c => c.ListName == strListName & c.FolderId == folder.ID & c.FolderUniqueId == folder.UniqueId);
+                    if (dFolder != null)
+                    {
+                        dFolder.FolderName = strNewFolderName;
+                        dFolder.FileLeafRef = strNewFolderName;
+                        dFolder.FileRef = dFolder.ParentUrl + "/" + strNewFolderName;
+                        fileDBContext.SubmitChanges();
+                    }
+                }
+                #endregion
+            }
+            else
             {
                 isUpdate = true;
-                Data.FileLogDataClassesDataContext fileDBContext = new Data.FileLogDataClassesDataContext();
-                Data.Folders dFolder = fileDBContext.Folders.FirstOrDefault<Data.Folders>(c => c.ListName == strListName & c.FolderId == folder.ID & c.FolderUniqueId == folder.UniqueId);
-                if(dFolder != null)
-                {
-                    dFolder.FolderName = strNewFolderName;
-                    dFolder.FileLeafRef = strNewFolderName;
-                    dFolder.FileRef = dFolder.ParentUrl + "/" + strNewFolderName;
-                    fileDBContext.SubmitChanges();
-                }
             }
-            #endregion
-
             return isUpdate;
         }
 
@@ -798,7 +874,11 @@ namespace SPDocumentWcfService
             //    "<IncludeMandatoryColumns>FALSE</IncludeMandatoryColumns>" +
             //    "<DateInUtc>TRUE</DateInUtc>";
             string[] strSplitFolder = FolderName.Split('/');
-            string strParentFolderName = FolderListUrl + @"/";
+            string strParentFolderName = FolderListUrl;
+            if (strParentFolderName.Last() != '/')
+            {
+                strParentFolderName += "/";
+            }
             if (strSplitFolder.Length > 1)
             {
                 for (int i = 0; i < strSplitFolder.Length - 1; i++)
@@ -828,6 +908,8 @@ namespace SPDocumentWcfService
 
             SPCostFolder folder = new SPCostFolder(ndListItems, strSmallFolderName);
             folder.ListName = ListName;
+            folder.SPSite = SPSite;
+            folder.SPWeb = SPWeb;
             //if (folder.ID == 0)
             //{
             //    //没有文件夹就需要创建
@@ -846,12 +928,15 @@ namespace SPDocumentWcfService
         {
             //新文件夹层级造成二级三级的文件夹无法通过编号查询得到，需要用文件夹路径来查询
             Data.FileLogDataClassesDataContext dataContext = new Data.FileLogDataClassesDataContext();
-            Data.Folders folder = dataContext.Folders.SingleOrDefault<Data.Folders>(c => c.SPSite == this.SPSite & c.SPWeb == this.SPWeb & c.ListName == ListName & c.FolderId == FolderId);
-            if(folder != null)
+            string strSite = this.SPSite + "/";
+            //c.SPSite == strSite & 
+            Data.Folders folder = dataContext.Folders.SingleOrDefault<Data.Folders>(c => c.SPWeb == this.SPWeb & c.ListName == ListName & c.FolderId == FolderId);
+            if (folder != null)
             {
-                SPCostList list = GetListInfo(ListName);
-                string strFolderName = folder.FileRef;
-                return GetFolderInfo(ListName, list.ListUrl, strFolderName);
+                //SPCostList list = GetListInfo(ListName);
+                string strFolderName = folder.FileLeafRef;
+                string strParentUrl = "/" + folder.ParentUrl;
+                return GetFolderInfo(ListName, strParentUrl, strFolderName);
             }
             else
             {
@@ -1026,6 +1111,8 @@ namespace SPDocumentWcfService
             {
                 XmlDocument xmlFindDoc = new System.Xml.XmlDocument();
 
+                string strFileN = StringHelper.GetXmlString(strFileName);
+
                 XmlNode ndQuery = xmlFindDoc.CreateNode(XmlNodeType.Element, "Query", "");
                 XmlNode ndViewFields = xmlFindDoc.CreateNode(XmlNodeType.Element, "ViewFields", "");
                 XmlNode ndQueryOptions = xmlFindDoc.CreateNode(XmlNodeType.Element, "QueryOptions", "");
@@ -1040,7 +1127,7 @@ namespace SPDocumentWcfService
                 ndQueryOptions.InnerXml = strQueryOptions;
 
                 ndViewFields.InnerXml = "<FieldRef Name='ID' />";
-                strSerachXml = "<Where><Eq><FieldRef Name='FileLeafRef'/><Value Type='Text'>" + strFileName + "</Value></Eq></Where>";
+                strSerachXml = "<Where><Eq><FieldRef Name='FileLeafRef'/><Value Type='Text'>" + strFileN + "</Value></Eq></Where>";
                 ndQuery.InnerXml = strSerachXml;
 
                 SPListWebService.Lists listHelper = new SPListWebService.Lists()
@@ -1193,6 +1280,8 @@ namespace SPDocumentWcfService
                 XmlNode node = listHelper.GetList(ListName);
                 //获取列表库的结构
                 SPCostList list = new SPCostList(node);
+                list.SPSite = SPSite;
+                list.SPWeb = SPWeb;
 
                 return list;
             }
@@ -1671,6 +1760,28 @@ namespace SPDocumentWcfService
             get;
             set;
         }
+
+
+        /// <summary>
+        /// SharePoint基础主站
+        /// </summary>
+        public string SPBaseSite
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(SPSite))
+                {
+                    string[] strBaseSites = SPSite.Split('/');
+                    string strBaseSite = string.Format("{0}//{1}{2}", strBaseSites[0], strBaseSites[1], strBaseSites[2]);
+                    return strBaseSite;
+                }
+                else
+                {
+                    return SPSite;
+                }
+            }
+        }
+
         /// <summary>
         /// 当前站点完整地址
         /// </summary>
@@ -1682,7 +1793,8 @@ namespace SPDocumentWcfService
                 if (!string.IsNullOrEmpty(_fullWebUrl))
                 {
                     return _fullWebUrl;
-                }else
+                }
+                else
                 {
                     return SPSite + "/" + SPWeb + "/";
                 }
@@ -2194,6 +2306,8 @@ namespace SPDocumentWcfService
         {
             this.SPList = list;
             this.SPFolder = folder;
+            this.SPSite = folder.SPSite;
+            this.SPWeb = folder.SPWeb;
             XmlNamespaceManager ns = new XmlNamespaceManager(ndListItems.OwnerDocument.NameTable);
             ns.AddNamespace("rs", "urn:schemas-microsoft-com:rowset");
             ns.AddNamespace("z", "#RowsetSchema");
@@ -2273,6 +2387,8 @@ namespace SPDocumentWcfService
             FileRef = strFolderUrl.Substring(strFolderUrl.IndexOf("#") + 1);
             DocIcon = strIcon;
             Modified = Convert.ToDateTime(strModified);
+            FileFullRef = SPBaseSite + "/" + FileRef;
+            FileWebFullRef = SPBaseSite + "/" + FileRef;
             //复制文件到本地
             //暂时不需要该功能操作文件
             //CreateOrUpdateFile();
@@ -2314,7 +2430,7 @@ namespace SPDocumentWcfService
         {
             get
             {
-                string strFileFullRef = SPSite + "/" + FileRef;
+                string strFileFullRef = SPBaseSite + "/" + FileRef;
                 return strFileFullRef;
             }
         }
@@ -2325,16 +2441,18 @@ namespace SPDocumentWcfService
         [DataMember]
         public string FileFullRef
         {
-            get
-            {
-                string strFileFullRef = SPSite + "/" + FileRef;
+            set;
+            get;
+            //get
+            //{
+            //    string strFileFullRef = SPBaseSite + "/" + FileRef;
 
-                //使用新方法打开地址 Uri.EscapeDataString()
-                //strFileFullRef = @"\ShowOutFile.ashx?f=" + HttpUtility.UrlEncode(strFileFullRef);
-                //strFileFullRef = @"\ShowOutFile.ashx?f=" + Uri.EscapeDataString(strFileFullRef);
+            //    //使用新方法打开地址 Uri.EscapeDataString()
+            //    //strFileFullRef = @"\ShowOutFile.ashx?f=" + HttpUtility.UrlEncode(strFileFullRef);
+            //    //strFileFullRef = @"\ShowOutFile.ashx?f=" + Uri.EscapeDataString(strFileFullRef);
 
-                return strFileFullRef;
-            }
+            //    return strFileFullRef;
+            //}
         }
         /// <summary>
         /// 完整路径(在线打开)
@@ -2342,28 +2460,30 @@ namespace SPDocumentWcfService
         [DataMember]
         public string FileWebFullRef
         {
-            get
-            {
-                //?web=1
+            set;
+            get;
+            //get
+            //{
+            //    //?web=1
 
-                string strWebFullRef = string.Empty;
-                if (!FileIsMy)
-                {
-                    strWebFullRef = SPSite + "/" + FileRef + "";
-                    //strWebFullRef = @"\ShowOutFile.ashx?f=" + Uri.EscapeDataString(strWebFullRef);
-                }
-                else
-                {
-                    strWebFullRef = _fileLocalUrl;
-                }
+            //    string strWebFullRef = string.Empty;
+            //    if (!FileIsMy)
+            //    {
+            //        strWebFullRef = SPSite + "/" + FileRef + "";
+            //        //strWebFullRef = @"\ShowOutFile.ashx?f=" + Uri.EscapeDataString(strWebFullRef);
+            //    }
+            //    else
+            //    {
+            //        strWebFullRef = _fileLocalUrl;
+            //    }
 
-                //HttpServerUtility pageServer = 
-                //完整地址使用新的打开地址
-                //strWebFullRef = @"\ShowOutFile.ashx?f=" + HttpUtility.UrlEncode(strWebFullRef);
+            //    //HttpServerUtility pageServer = 
+            //    //完整地址使用新的打开地址
+            //    //strWebFullRef = @"\ShowOutFile.ashx?f=" + HttpUtility.UrlEncode(strWebFullRef);
 
 
-                return strWebFullRef;
-            }
+            //    return strWebFullRef;
+            //}
         }
         /// <summary>
         /// 扩展的页数
@@ -2538,6 +2658,8 @@ namespace SPDocumentWcfService
                 SPCostDocument doc = new SPCostDocument();
                 doc.SPList = listItem;
                 doc.SPFolder = null;
+                doc.SPSite = listItem.SPSite;
+                doc.SPWeb = listItem.SPWeb;
                 if (typeField != null)
                 {
                     doc.XmlLoad(node, pageField, typeField);
@@ -2580,6 +2702,8 @@ namespace SPDocumentWcfService
                 SPCostDocument doc = new SPCostDocument();
                 doc.SPList = listItem;
                 doc.SPFolder = folder;
+                doc.SPSite = folder.SPSite;
+                doc.SPWeb = folder.SPWeb;
                 if (typeField != null)
                 {
                     doc.XmlLoad(node, pageField, typeField);
@@ -2763,7 +2887,7 @@ namespace SPDocumentWcfService
         {
             get
             {
-                return SPSite + "/" + FileRef;
+                return SPBaseSite + "/" + FileRef;
             }
         }
         /// <summary>
@@ -3046,7 +3170,7 @@ namespace SPDocumentWcfService
         [DataMember]
         public List<string> DomainUserList
         {
-            get;set;
+            get; set;
         }
         /*
         /// <summary>

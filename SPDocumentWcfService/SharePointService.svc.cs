@@ -50,7 +50,7 @@ namespace SPDocumentWcfService
         public void UpdateSPListItem(SPSetting setting, string strListName, int iItemId, Dictionary<string, string> updateValue)
         {
             SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
-            docHelper.UpdateSPListItem(strListName, 1, updateValue);
+            docHelper.UpdateSPListItem(strListName, iItemId, updateValue);
         }
 
         #endregion
@@ -96,6 +96,21 @@ namespace SPDocumentWcfService
         {
             SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
             return docHelper.UpdateFolderName(strListName, strOldFolderName, strNewFolderName);
+        }
+
+        /// <summary>
+        /// 文件夹改名操作
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strListName">列表名称</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <param name="strNewFolderName">文件夹新名称</param>
+        /// <returns></returns>
+        public bool UpdateFolderNameByID(SPSetting setting, string strListName, int iFolderId, string strNewFolderName)
+        {
+
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            return docHelper.UpdateFolderName(strListName, iFolderId, strNewFolderName);
         }
 
         #endregion
@@ -247,6 +262,44 @@ namespace SPDocumentWcfService
             }
             return wcfDocs;
         }
+
+        /// <summary>
+        /// 获取指定文件夹里面的所有文件集合(来自数据库)
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="ListName">文档库名称</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <returns></returns>
+        public List<SPWcfDocument> GetFolderDocumentsByDB(SPSetting setting, string ListName, int iFolderId)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SPCostDocuments docs = docHelper.GetFolderDocuments(ListName, iFolderId);
+            List<SPWcfDocument> wcfDocs = new List<SPWcfDocument>();
+            foreach (SPCostDocument doc in docs)
+            {
+                SPWcfDocument wcfDoc = new SPDocumentWcfService.SPWcfDocument()
+                {
+                    ID = doc.ID,
+                    UniqueId = doc.UniqueId,
+                    FileLeafRef = doc.FileLeafRef,
+                    FileRef = doc.FileRef,
+                    DocIcon = doc.DocIcon,
+                    DelFileFullRef = doc.DelFileFullRef,
+                    FileFullRef = doc.FileFullRef,
+                    FileWebFullRef = doc.FileWebFullRef,
+                    PageNum = doc.PageNum,
+                    DocumentType = doc.DocumentType,
+                    CreateUser = doc.CreateUser,
+                    Created = doc.Created,
+                    ModifieUser = doc.ModifieUser,
+                    FileLeafName = doc.FileLeafName
+                };
+                wcfDocs.Add(wcfDoc);
+            }
+            return wcfDocs;
+        }
+
+
 
         #endregion
 
