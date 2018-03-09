@@ -45,6 +45,7 @@ namespace SPDocumentWcfService
         private string _spuserid = string.Empty;
         private string _spuserpwd = string.Empty;
         private string _spuserdomain = string.Empty;
+        private string _actionuser = string.Empty;
         #endregion
 
         #region 公开可序列化数据
@@ -92,6 +93,16 @@ namespace SPDocumentWcfService
         {
             get { return _spuserdomain; }
             set { _spuserdomain = value; }
+        }
+
+        /// <summary>
+        /// 当前操作用户帐号
+        /// </summary>
+        [DataMember]
+        public string ActionUser
+        {
+            get { return _actionuser; }
+            set { _actionuser = value; }
         }
         #endregion
 
