@@ -152,10 +152,10 @@ namespace SPDocumentWcfService
         #endregion
 
         #region 构造函数扩展
-        public SharePointHelper(string strUserId, string strUserPwd, string strUserDomain, string strSPSite, string strSPWeb) : this(strUserId, strUserPwd, strUserDomain, strSPSite, strSPWeb, "admin")
-        {
+        //public SharePointHelper(string strUserId, string strUserPwd, string strUserDomain, string strSPSite, string strSPWeb) : this(strUserId, strUserPwd, strUserDomain, strSPSite, strSPWeb, "admin")
+        //{
 
-        }
+        //}
         public SharePointHelper(string strUserId, string strUserPwd, string strUserDomain, string strSPSite, string strSPWeb, string strUserCode)
         {
             this.SPSite = strSPSite;
@@ -165,6 +165,11 @@ namespace SPDocumentWcfService
             this.SPUserDomain = strUserDomain;
             SPCredential = new NetworkCredential(strUserId, strUserPwd, strUserDomain);
             UserCode = strUserCode;
+            //如果没有传递操作员就默认admin
+            if (string.IsNullOrEmpty(UserCode))
+            {
+                UserCode = "admin";
+            }
         }
         #endregion
 

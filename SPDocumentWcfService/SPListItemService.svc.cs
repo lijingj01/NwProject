@@ -25,7 +25,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public SPListItems GetSPListItems(SPSetting setting, string ListName)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             SPListItems items = docHelper.GetSPListItems(ListName);
             return items;
         }
@@ -50,7 +50,7 @@ namespace SPDocumentWcfService
         /// <param name="updateValue">需要更改的内容</param>
         public void UpdateSPListItem(SPSetting setting, string strListName, int iItemId, Dictionary<string, string> updateValue)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             docHelper.UpdateSPListItem(strListName, 1, updateValue);
         }
 

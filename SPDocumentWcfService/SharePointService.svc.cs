@@ -21,7 +21,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public SPListItems GetSPListItems(SPSetting setting, string ListName)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             SPListItems items = docHelper.GetSPListItems(ListName);
             return items;
             //return new SPDocumentWcfService.SPListItems();
@@ -35,7 +35,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public SPListItems GetSPListItemsBySearch(SPSetting setting, string ListName, Dictionary<string, string> SearchList)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             SPListItems items = docHelper.GetSPListItems(ListName, SearchList);
             return items;
         }
@@ -49,7 +49,7 @@ namespace SPDocumentWcfService
         /// <param name="updateValue">需要更改的内容</param>
         public void UpdateSPListItem(SPSetting setting, string strListName, int iItemId, Dictionary<string, string> updateValue)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             docHelper.UpdateSPListItem(strListName, iItemId, updateValue);
         }
 
@@ -69,7 +69,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public SPWcfFolder CreateSPFolder(SPSetting setting, string strListName, string strFolderName, DateTime dtCreated)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             SPCostFolder folder = docHelper.CreateSPFolder(strListName, strFolderName, dtCreated);
             SPWcfFolder wFolder = new SPDocumentWcfService.SPWcfFolder()
             {
@@ -94,7 +94,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public bool UpdateFolderName(SPSetting setting, string strListName, string strOldFolderName, string strNewFolderName)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             return docHelper.UpdateFolderName(strListName, strOldFolderName, strNewFolderName);
         }
 
@@ -109,7 +109,7 @@ namespace SPDocumentWcfService
         public bool UpdateFolderNameByID(SPSetting setting, string strListName, int iFolderId, string strNewFolderName)
         {
 
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             return docHelper.UpdateFolderName(strListName, iFolderId, strNewFolderName);
         }
 
@@ -131,7 +131,7 @@ namespace SPDocumentWcfService
         /// <returns>文件的完整地址</returns>
         public string UploadFile(SPSetting setting, string strFileName, byte[] fileData, string ListName, int FolderId, int iPageNum, string strDocumentType, out bool IsUpload)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             string strReturn = docHelper.UploadFile(strFileName, fileData, ListName, FolderId, iPageNum, strDocumentType, out IsUpload);
             return strReturn;
         }
@@ -151,7 +151,7 @@ namespace SPDocumentWcfService
         /// <returns>新文件夹编号</returns>
         public int UploadFile(SPSetting setting, string strFileName, byte[] fileData, string ListName, string FolderName, int iPageNum, string strDocumentType, out bool IsUpload, out string strUploadMessage)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             int iFolderId = docHelper.UploadFile(strFileName, fileData, ListName, FolderName, iPageNum, strDocumentType, out IsUpload, out strUploadMessage);
             return iFolderId;
         }
@@ -167,7 +167,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public string UploadFile(SPSetting setting, string strFileName, byte[] fileData, string ListName, out bool IsUpload)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             string strReturn = docHelper.UploadFile(strFileName, fileData, ListName, out IsUpload);
             return strReturn;
         }
@@ -185,7 +185,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public int UploadFile(SPSetting setting, string strFileName, byte[] fileData, string ListName, string FolderName, out bool IsUpload, out string strUploadMessage)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             int iFolderId = docHelper.UploadFile(strFileName, fileData, ListName, FolderName, out IsUpload, out strUploadMessage);
             return iFolderId;
         }
@@ -201,7 +201,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public string UploadFile(SPSetting setting, string strFileName, byte[] fileData, string ListName, int FolderId, out bool IsUpload)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             string strReturn = docHelper.UploadFile(strFileName, fileData, ListName, FolderId, out IsUpload);
             return strReturn;
         }
@@ -220,7 +220,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public bool DeleteFile(SPSetting setting, string ListName, int iFolderId, string FileName)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             return docHelper.DeleteFile(ListName, FileName, iFolderId);
         }
 
@@ -236,7 +236,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public List<SPWcfDocument> GetFolderDocuments(SPSetting setting, string ListName, int iFolderId)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             SPCostDocuments docs = docHelper.GetFolderDocuments(ListName, iFolderId);
             List<SPWcfDocument> wcfDocs = new List<SPWcfDocument>();
             foreach (SPCostDocument doc in docs)
@@ -272,7 +272,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public List<SPWcfDocument> GetFolderDocumentsByDB(SPSetting setting, string ListName, int iFolderId)
         {
-            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb);
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             SPCostDocuments docs = docHelper.GetFolderDocuments(ListName, iFolderId);
             List<SPWcfDocument> wcfDocs = new List<SPWcfDocument>();
             foreach (SPCostDocument doc in docs)
