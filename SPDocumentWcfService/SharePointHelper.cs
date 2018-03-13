@@ -2301,6 +2301,7 @@ namespace SPDocumentWcfService
             _fileLocalUrl = string.Empty;
             UserIsCreate = 0;
             this.FileIsMy = false;
+            DataValues = new SPDocumentWcfService.SPListItemDataValues();
         }
 
 
@@ -2394,9 +2395,25 @@ namespace SPDocumentWcfService
             Modified = Convert.ToDateTime(strModified);
             FileFullRef = SPBaseSite + "/" + FileRef;
             FileWebFullRef = SPBaseSite + "/" + FileRef;
-            //复制文件到本地
-            //暂时不需要该功能操作文件
-            //CreateOrUpdateFile();
+
+            #region 其它属性加入
+
+            foreach (SPCostListField field in SPList.Fields)
+            {
+                string strFieldName = "ows_" + field.Name;
+                if (node.Attributes[strFieldName] != null)
+                {
+                    string value = node.Attributes[strFieldName].Value;
+
+                    SPListItemDataValue dv = new SPListItemDataValue();
+                    dv.DataName = field.DisplayName;
+                    dv.DataType = field.Type;
+                    dv.DataValue = value;
+                    DataValues.Add(dv);
+                }
+            }
+
+            #endregion
         }
 
         private void XmlCreateInfo(XmlNode node, int iPageNum)
@@ -2580,6 +2597,17 @@ namespace SPDocumentWcfService
         }
         #endregion
 
+        #region 文档扩展属性集合
+
+        /// <summary>
+        /// 列表数据集合
+        /// </summary>
+        public SPListItemDataValues DataValues
+        {
+            get; set;
+        }
+
+        #endregion
     }
     [DataContract]
     /// <summary>

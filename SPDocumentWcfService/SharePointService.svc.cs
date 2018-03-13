@@ -256,7 +256,8 @@ namespace SPDocumentWcfService
                     CreateUser = doc.CreateUser,
                     Created = doc.Created,
                     ModifieUser = doc.ModifieUser,
-                    FileLeafName = doc.FileLeafName
+                    FileLeafName = doc.FileLeafName,
+                    DataValues = doc.DataValues
                 };
                 wcfDocs.Add(wcfDoc);
             }
@@ -292,7 +293,44 @@ namespace SPDocumentWcfService
                     CreateUser = doc.CreateUser,
                     Created = doc.Created,
                     ModifieUser = doc.ModifieUser,
-                    FileLeafName = doc.FileLeafName
+                    FileLeafName = doc.FileLeafName,
+                    DataValues = doc.DataValues
+                };
+                wcfDocs.Add(wcfDoc);
+            }
+            return wcfDocs;
+        }
+
+        /// <summary>
+        /// 获取指定文档库里面的所有文件集合
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="ListName">文档库名称</param>
+        /// <returns></returns>
+        public List<SPWcfDocument> GetFolderAllDocuments(SPSetting setting, string ListName)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            SPCostDocuments docs = docHelper.GetFolderDocuments(ListName);
+            List<SPWcfDocument> wcfDocs = new List<SPWcfDocument>();
+            foreach (SPCostDocument doc in docs)
+            {
+                SPWcfDocument wcfDoc = new SPDocumentWcfService.SPWcfDocument()
+                {
+                    ID = doc.ID,
+                    UniqueId = doc.UniqueId,
+                    FileLeafRef = doc.FileLeafRef,
+                    FileRef = doc.FileRef,
+                    DocIcon = doc.DocIcon,
+                    DelFileFullRef = doc.DelFileFullRef,
+                    FileFullRef = doc.FileFullRef,
+                    FileWebFullRef = doc.FileWebFullRef,
+                    PageNum = doc.PageNum,
+                    DocumentType = doc.DocumentType,
+                    CreateUser = doc.CreateUser,
+                    Created = doc.Created,
+                    ModifieUser = doc.ModifieUser,
+                    FileLeafName = doc.FileLeafName,
+                    DataValues = doc.DataValues
                 };
                 wcfDocs.Add(wcfDoc);
             }

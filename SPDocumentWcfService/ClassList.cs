@@ -342,6 +342,20 @@ namespace SPDocumentWcfService
             get; set;
         }
         #endregion
+
+
+        #region 文档扩展属性集合
+
+        /// <summary>
+        /// 列表数据集合
+        /// </summary>
+        [DataMember]
+        public SPListItemDataValues DataValues
+        {
+            get; set;
+        }
+
+        #endregion
     }
     [Serializable]
     [CollectionDataContract]

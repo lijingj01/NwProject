@@ -126,6 +126,10 @@ namespace SPDocumentWcfService
 
         [OperationContract]
         [ServiceKnownType(typeof(SPWcfDocument))]
+        List<SPWcfDocument> GetFolderAllDocuments(SPSetting setting, string ListName);
+
+        [OperationContract]
+        [ServiceKnownType(typeof(SPWcfDocument))]
         List<SPWcfDocument> GetFolderDocumentsByDB(SPSetting setting, string ListName, int iFolderId);
         #endregion
 
