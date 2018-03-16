@@ -114,7 +114,6 @@ namespace SPDocumentWcfService
 
         #endregion
 
-
         #region 公开传递参数属性
         /// <summary>
         /// 当前刚上传的文件的完整路径
@@ -147,6 +146,13 @@ namespace SPDocumentWcfService
         /// 操作用户帐号
         /// </summary>
         public string UserCode { get; set; }
+        #endregion
+
+        #region 内部特殊判断字段
+        /// <summary>
+        /// 更新数据后SharePoint接口返回成功的值
+        /// </summary>
+        private string UPDATERETURNRIGHT = "0x00000000";
         #endregion
 
         #endregion
@@ -618,6 +624,8 @@ namespace SPDocumentWcfService
 
         #region 文件夹操作方法
 
+        #region 创建文件夹
+
         /// <summary>
         /// 为特定的文档库创建对应的文件夹(按年月来组织文件夹层级)
         /// </summary>
@@ -714,6 +722,11 @@ namespace SPDocumentWcfService
             }
         }
 
+        #endregion
+
+        #region 文件夹改名
+
+
         /// <summary>
         /// 修改文件夹名称
         /// </summary>
@@ -759,7 +772,7 @@ namespace SPDocumentWcfService
                 XmlNode ndReturn = listHelper.UpdateListItems(strListName, elBatch);
 
                 #region 更新文件夹名称成功后需要同步更新数据
-                if (ndReturn.InnerText == "0x00000000")
+                if (ndReturn.InnerText == UPDATERETURNRIGHT)
                 {
                     isUpdate = true;
                     Data.FileLogDataClassesDataContext fileDBContext = new Data.FileLogDataClassesDataContext();
@@ -818,7 +831,7 @@ namespace SPDocumentWcfService
                 XmlNode ndReturn = listHelper.UpdateListItems(strListName, elBatch);
 
                 #region 更新文件夹名称成功后需要同步更新数据
-                if (ndReturn.InnerText == "0x00000000")
+                if (ndReturn.InnerText == UPDATERETURNRIGHT)
                 {
                     isUpdate = true;
                     Data.FileLogDataClassesDataContext fileDBContext = new Data.FileLogDataClassesDataContext();
@@ -840,6 +853,10 @@ namespace SPDocumentWcfService
             return isUpdate;
         }
 
+        #endregion
+
+        #region 查询文件夹
+
         /// <summary>
         /// 获取指定的文件夹
         /// </summary>
@@ -852,6 +869,7 @@ namespace SPDocumentWcfService
             SPCostList list = GetListInfo(ListName);
             //查询文件夹
             SPCostFolder folder = GetFolderInfo(ListName, list.RootFolder, FolderName);
+            folder.ListUrl = list.ListUrl;
             return folder;
         }
         /// <summary>
@@ -972,7 +990,10 @@ namespace SPDocumentWcfService
                 //listHelper.get
 
                 SPCostFolder spfolder = new SPCostFolder(ndListItems);
+                SPCostList list = GetListInfo(ListName);
+                spfolder.ListUrl = list.ListUrl;
                 spfolder.ListName = ListName;
+
                 return spfolder;
                 #endregion
             }
@@ -1053,6 +1074,9 @@ namespace SPDocumentWcfService
                 return folder;
             }
         }
+
+
+        #endregion
 
         #endregion
 
@@ -1298,264 +1322,25 @@ namespace SPDocumentWcfService
         #endregion
 
         #region 图片库相关操作
-        /*
-        /// <summary>
-        /// 将旧SharePoint图片库文件转移到新SharePoint图片库
-        /// </summary>
-        /// <param name="strOldListName">旧图片库名称</param>
-        /// <param name="strNewListName">新图片库名称</param>
-        public void OldSignImageToNewImage(string strOldListName, string strNewListName)
-        {
-            try
-            {
-                // 實例化图片库对象
-                SP16ImageWebService.Imaging imageHelper = new SP16ImageWebService.Imaging()
-                {
-                    Url = FullNewWebUrl + ImageUrl,
-                    Credentials = NewSPCredential
-                };
 
-                SP07ListWebService.Lists listHelper = new SP07ListWebService.Lists()
-                {
-                    Url = FullOldWebUrl + ListUrl,
-                    Credentials = OldSPCredential
-                };
-
-                XmlDocument xmlDoc = new System.Xml.XmlDocument();
-
-                XmlNode ndQuery = xmlDoc.CreateNode(XmlNodeType.Element, "Query", "");
-                XmlNode ndViewFields = xmlDoc.CreateNode(XmlNodeType.Element, "ViewFields", "");
-                XmlNode ndQueryOptions = xmlDoc.CreateNode(XmlNodeType.Element, "QueryOptions", "");
-
-                //查询文件列表
-
-                ndViewFields.InnerXml = "<FieldRef Name='ID' />";
-
-                StringBuilder strQueryOptionsXml = new StringBuilder();
-                strQueryOptionsXml.Append("<QueryOptions>");
-                strQueryOptionsXml.Append("<IncludeMandatoryColumns>FALSE</IncludeMandatoryColumns>");
-                strQueryOptionsXml.Append("<DateInUtc>TRUE</DateInUtc>");
-                strQueryOptionsXml.Append("<Folder></Folder>");
-                strQueryOptionsXml.Append("</QueryOptions>");
-
-
-                ndQueryOptions.InnerXml = strQueryOptionsXml.ToString();
-
-                ndQuery.InnerXml = "";
-                //查询对应的文件夹集合
-                XmlNode ndListItems = listHelper.GetListItems(strOldListName, null, ndQuery, null, null, ndQueryOptions, null);
-
-                //列表信息
-                SPCostList oldList = GetOldListInfo(strOldListName);
-                oldList.SPSiteUrl = this.SPOldSite;
-                //文件夹列表
-                //SPCostFolders folders = new SPCostFolders(ndListItems);
-                SPCostDocuments images = new SPCostDocuments(ndListItems);
-
-
-                SP16DwsWebService.Dws myDws = new SP16DwsWebService.Dws();
-                myDws.Credentials = NewSPCredential;
-                myDws.Url = FullNewWebUrl + DwsUrl;
-
-                SP16ListWebService.Lists listNewHelper = new SP16ListWebService.Lists()
-                {
-                    Url = FullNewWebUrl + ListUrl,
-                    Credentials = NewSPCredential
-                };
-
-                int iOldFolderId = 0;
-                DocLogDataClassesDataContext dataContext = new DocLogDataClassesDataContext();
-                SPCostList newlist = GetNewListInfo(strNewListName);
-                foreach (SPCostDocument oldDoc in images)
-                {
-                    DocumentTransferLog log = dataContext.DocumentTransferLog.SingleOrDefault<DocumentTransferLog>(c =>
-                                                                c.OldSPSite == SPOldSite
-                                                                & c.OldSPWeb == SPOldWeb
-                                                                & c.OldListName == strOldListName
-                                                                & c.OldFolderId == iOldFolderId
-                                                                & c.OldUniqueId == oldDoc.UniqueId
-                                                                & c.CopyErrorCode != string.Empty
-                                                                );
-                    if (log == null)
-                    {
-                        byte[] fileStream = GetOldWebFileStream(oldDoc.FileFullRef, strOldListName);
-                        //将文件上传到新SharePoint文档库
-                        string strNewFullDocUrl = SPNewSite + "/" + oldDoc.FileLeafRef;
-                        string strNewFileLeafRef = oldDoc.FileLeafRef;
-                        bool isUpload = false;
-
-                        Guid? fileId = null;
-                        //string strReturn = UploadFileToNew(oldDoc.FileLeafRef, fileStream, strNewFullDocUrl
-                        //				, strNewListName, null, 0, 0, string.Empty
-                        //				, out isUpload, out fileId);
-
-                        XmlDocument resdoc = new XmlDocument();
-                        XmlNode resnode = resdoc.CreateNode(XmlNodeType.Element, "Result", "");
-                        resnode = imageHelper.Upload(strNewListName, string.Empty, fileStream, strNewFileLeafRef, true);
-
-                        #region 记录数据
-
-                        log = new DocumentTransferLog();
-                        //旧数据记录
-                        log.OldSPSite = SPOldSite;
-                        log.OldSPWeb = SPOldWeb;
-                        log.OldListName = strOldListName;
-                        log.OldFolderId = iOldFolderId;
-                        log.OldFolderName = string.Empty;
-                        log.OldFileLeafRef = oldDoc.FileLeafRef;
-                        log.OldUniqueId = oldDoc.UniqueId;
-                        log.OldFileWebFullRef = oldDoc.FileFullRef;
-                        log.Created = DateTime.Now;
-                        //新数据记录
-                        log.NewSPSite = SPNewSite;
-                        log.NewSPWeb = SPNewWeb;
-                        log.NewListName = strNewListName;
-                        log.NewFolderId = 0;
-                        log.NewFolderName = string.Empty;
-                        log.NewFileLeafRef = strNewFileLeafRef;
-                        log.NewUniqueId = fileId;
-                        log.NewFileWebFullRef = strNewFullDocUrl;
-                        //isUpload ? string.Empty : 
-                        log.CopyErrorCode = resnode.InnerXml;
-                        dataContext.DocumentTransferLog.InsertOnSubmit(log);
-                        #endregion
-                    }
-
-                }
-
-                dataContext.SubmitChanges();
-
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
+        #region 图片库文件夹操作
 
         /// <summary>
-        /// 将旧SharePoint图片库文件转移到新SharePoint图片库
+        /// 更新图片库里面特定文件夹的名称
         /// </summary>
-        /// <param name="strOldListName">旧图片库名称</param>
-        /// <param name="strNewListName">新图片库名称</param>
-        public void OldImageToNewImage(string strOldListName, string strNewListName)
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="listHelper">接口对象</param>
+        /// <param name="strNewFolderTitle">图片文件夹新名称</param>
+        /// <param name="strFolderFullTitle">图片文件夹原名称</param>
+        /// <param name="strNewFolderFullTitle">图片文件夹新名称的完整路径</param>
+        /// <returns></returns>
+        private int UpdateImageFolderName(string strListName, SPListWebService.Lists listHelper
+                                , string strNewFolderTitle
+                                , string strFolderFullTitle
+                                , string strNewFolderFullTitle
+                                 )
         {
-            try
-            {
-                // 實例化图片库对象
-                SP16ImageWebService.Imaging imageHelper = new SP16ImageWebService.Imaging()
-                {
-                    Url = FullNewWebUrl + ImageUrl,
-                    Credentials = NewSPCredential
-                };
-
-                SP07ListWebService.Lists listHelper = new SP07ListWebService.Lists()
-                {
-                    Url = FullOldWebUrl + ListUrl,
-                    Credentials = OldSPCredential
-                };
-
-                XmlDocument xmlDoc = new System.Xml.XmlDocument();
-
-                XmlNode ndQuery = xmlDoc.CreateNode(XmlNodeType.Element, "Query", "");
-                XmlNode ndViewFields = xmlDoc.CreateNode(XmlNodeType.Element, "ViewFields", "");
-                XmlNode ndQueryOptions = xmlDoc.CreateNode(XmlNodeType.Element, "QueryOptions", "");
-
-                //查询文件列表
-
-                ndViewFields.InnerXml = "<FieldRef Name='ID' />";
-
-                StringBuilder strQueryOptionsXml = new StringBuilder();
-                strQueryOptionsXml.Append("<QueryOptions>");
-                strQueryOptionsXml.Append("<IncludeMandatoryColumns>FALSE</IncludeMandatoryColumns>");
-                strQueryOptionsXml.Append("<DateInUtc>TRUE</DateInUtc>");
-                strQueryOptionsXml.Append("<Folder></Folder>");
-                strQueryOptionsXml.Append("</QueryOptions>");
-
-
-                ndQueryOptions.InnerXml = strQueryOptionsXml.ToString();
-
-                ndQuery.InnerXml = "";
-                //查询对应的文件夹集合
-                XmlNode ndListItems = listHelper.GetListItems(strOldListName, null, ndQuery, null, null, ndQueryOptions, null);
-
-                //列表信息
-                SPCostList oldList = GetOldListInfo(strOldListName);
-                oldList.SPSiteUrl = this.SPOldSite;
-                //文件夹列表
-                SPCostFolders folders = new SPCostFolders(ndListItems);
-
-                #region 在新库创建文件夹
-                SP16DwsWebService.Dws myDws = new SP16DwsWebService.Dws();
-                myDws.Credentials = NewSPCredential;
-                myDws.Url = FullNewWebUrl + DwsUrl;
-
-                SP16ListWebService.Lists listNewHelper = new SP16ListWebService.Lists()
-                {
-                    Url = FullNewWebUrl + ListUrl,
-                    Credentials = NewSPCredential
-                };
-
-
-                SPCostList newlist = GetNewListInfo(strNewListName);
-
-                foreach (SPCostFolder oldFolder in folders)
-                {
-                    if ("/" + oldFolder.ParentUrl == oldList.RootFolder)
-                    {
-                        //新建一级文件夹
-                        string strNewFolderTitle = oldFolder.FileLeafRef;
-                        if (!NewFolderIsCreate(strNewListName, strNewFolderTitle))
-                        {
-                            XmlNode newNode = imageHelper.CreateNewFolder(strNewListName, "");
-                            strNewFolderTitle = newNode.Attributes["title"].InnerText;
-
-                            #region 文件夹改名
-
-                            strNewFolderTitle = UpdateNewFolderName(strNewListName, listNewHelper, oldFolder, strNewFolderTitle);
-
-                            #endregion
-                        }
-
-                        #region 定义二级文件夹
-                        string strBaseUrl = oldFolder.FileFullRef;
-                        foreach (SPCostFolder oldChildeFolder in folders)
-                        {
-                            if ("/" + oldChildeFolder.ParentUrl == strBaseUrl)
-                            {
-                                string strNewChildFolderTitle = oldChildeFolder.FileLeafRef;
-                                if (!NewFolderIsCreate(strNewListName, strNewChildFolderTitle))
-                                {
-                                    XmlNode newChildNode = imageHelper.CreateNewFolder(strNewListName, strNewFolderTitle);
-                                    strNewChildFolderTitle = strNewFolderTitle + "/" + newChildNode.Attributes["title"].InnerText;
-
-                                    #region 文件夹改名
-
-                                    strNewChildFolderTitle = UpdateNewFolderName(strNewListName, listNewHelper
-                                                                    , oldChildeFolder, strNewChildFolderTitle);
-
-                                    #endregion
-                                }
-                            }
-                        }
-                        #endregion
-
-                    }
-                }
-                #endregion
-
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-        }
-
-        private string UpdateNewFolderName(string strNewListName, SP16ListWebService.Lists listNewHelper
-                                        , SPCostFolder oldFolder
-                                        , string strOldFolderTitle)
-        {
-            SPCostFolder newFolder = SearchNewFolderInfo(strNewListName, strOldFolderTitle);
-            string strNewFolderTitle = oldFolder.FileLeafRef;
+            SPCostFolder newFolder = GetFolderInfo(strListName, strFolderFullTitle);
             if (newFolder != null)
             {
                 StringBuilder strBatch = new StringBuilder();
@@ -1573,11 +1358,526 @@ namespace SPDocumentWcfService
 
                 elBatch.InnerXml = strBatch.ToString();
 
-                XmlNode ndReturn = listNewHelper.UpdateListItems(strNewListName, elBatch);
+                XmlNode ndReturn = listHelper.UpdateListItems(strListName, elBatch);
+
+                #region 文件夹记录起来
+                newFolder = GetFolderInfo(strListName, strNewFolderFullTitle);
+                try
+                {
+                    Data.FileLogDataClassesDataContext fileDBContext = new Data.FileLogDataClassesDataContext();
+                    //判断是否已经存在
+                    Data.Folders dbfolder = fileDBContext.Folders.SingleOrDefault<Data.Folders>(c => c.ListName == strListName & c.FolderId == newFolder.ID & c.FolderUniqueId == newFolder.UniqueId);
+                    if (dbfolder == null)
+                    {
+                        dbfolder = new Data.Folders()
+                        {
+                            SPSite = SPSite,
+                            SPWeb = SPWeb,
+                            ListName = strListName,
+                            FolderId = newFolder.ID,
+                            FolderName = newFolder.FileLeafRef,
+                            FolderUniqueId = newFolder.UniqueId,
+                            FileLeafRef = newFolder.FileLeafRef,
+                            FileRef = newFolder.FileRef,
+                            ParentUrl = newFolder.ParentUrl,
+                            Created = DateTime.Now,
+                            CreateUser = UserCode
+                        };
+
+                        fileDBContext.Folders.InsertOnSubmit(dbfolder);
+
+                    } else
+                    {
+                        dbfolder.FolderName = newFolder.FileLeafRef;
+                        dbfolder.FileLeafRef = newFolder.FileLeafRef;
+                        dbfolder.FileRef = newFolder.FileRef;
+                    }
+                    fileDBContext.SubmitChanges();
+                }
+                catch (Exception ex) { }
+                #endregion
+
+                return newFolder.ID;
             }
-            return strNewFolderTitle;
+            else
+            {
+                return 0;
+            }
         }
-        */
+
+        /// <summary>
+        /// 更新图片库里面的文件夹名称
+        /// </summary>
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <param name="strNewFolderName">文件夹新名称</param>
+        /// <returns></returns>
+        public bool UpdateImageFolderName(string strListName, int iFolderId, string strNewFolderName)
+        {
+            try
+            {
+                bool isUpdate = false;
+
+                //通过数据库来提取得到对应的文件夹数据
+                SPCostFolder folder = GetFolderInfo(strListName, iFolderId);
+                if (folder != null)
+                {
+
+                    SPListWebService.Lists listHelper = new SPListWebService.Lists()
+                    {
+                        Url = FullWebUrl + ListUrl,
+                        Credentials = SPCredential
+                    };
+
+                    StringBuilder strBatch = new StringBuilder();
+                    strBatch.AppendFormat("<Method ID='{0}' Cmd='Update'>", folder.ID);
+                    strBatch.AppendFormat("<Field Name='ID'>{0}</Field>", folder.ID);
+                    strBatch.AppendFormat("<Field Name='owshiddenversion'>{0}</Field>", 1);
+                    strBatch.AppendFormat("<Field Name='FileRef'>{0}</Field>", folder.FileFullRef);
+                    strBatch.AppendFormat("<Field Name='FSObjType'>{0}</Field>", 1);
+                    strBatch.AppendFormat("<Field Name='BaseName'>{0}</Field>", strNewFolderName);
+                    strBatch.Append("</Method>");
+
+                    XmlDocument xmlUpdateDoc = new System.Xml.XmlDocument();
+
+                    System.Xml.XmlElement elBatch = xmlUpdateDoc.CreateElement("Batch");
+
+                    elBatch.InnerXml = strBatch.ToString();
+
+                    XmlNode ndReturn = listHelper.UpdateListItems(strListName, elBatch);
+
+                    #region 更新文件夹名称成功后需要同步更新数据
+                    if (ndReturn.InnerText == UPDATERETURNRIGHT)
+                    {
+                        isUpdate = true;
+                        Data.FileLogDataClassesDataContext fileDBContext = new Data.FileLogDataClassesDataContext();
+                        Data.Folders dFolder = fileDBContext.Folders.FirstOrDefault<Data.Folders>(c => c.ListName == strListName & c.FolderId == folder.ID & c.FolderUniqueId == folder.UniqueId);
+                        if (dFolder != null)
+                        {
+                            dFolder.FolderName = strNewFolderName;
+                            dFolder.FileLeafRef = strNewFolderName;
+                            dFolder.FileRef = dFolder.ParentUrl + "/" + strNewFolderName;
+                            fileDBContext.SubmitChanges();
+                        }
+                    }
+                    #endregion
+                }
+                return isUpdate;
+            } catch
+            {
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 图片库创建文件夹
+        /// </summary>
+        /// <param name="strListName">文档库名称</param>
+        /// <param name="strFolderName">文件夹名称</param>
+        /// <param name="dtDataCreated">创建时间</param>
+        /// <returns></returns>
+        public SPCostFolder ImageCreateNewFolder(string strListName, string strFolderName, DateTime dtDataCreated)
+        {
+            try
+            {
+                int iNewFolderId = 0;
+                // 實例化图片库对象
+                SPImageWebService.Imaging imageHelper = new SPImageWebService.Imaging()
+                {
+                    Url = FullWebUrl + ImageUrl,
+                    Credentials = SPCredential
+                };
+
+                SPListWebService.Lists listHelper = new SPListWebService.Lists()
+                {
+                    Url = FullWebUrl + ListUrl,
+                    Credentials = SPCredential
+                };
+
+                #region 年文件夹
+
+                string strYearFolderName = string.Format("{0:0000}", dtDataCreated.Year);
+                SPCostFolder yearFolder = GetFolderInfo(strListName, strYearFolderName);
+                if (yearFolder.ID == 0)
+                {
+                    XmlNode newNode = imageHelper.CreateNewFolder(strListName, "");
+                    string strTempFolderName = newNode.Attributes["title"].InnerText;
+
+                    #region 文件夹改名
+                    int iYearFolderId = UpdateImageFolderName(strListName, listHelper, strYearFolderName, strTempFolderName, strYearFolderName);
+                    #endregion
+                }
+
+                #endregion
+
+                #region 月文件夹
+                string strMonthFolderName = string.Format("{0:0000}/{1:00}", dtDataCreated.Year, dtDataCreated.Month);
+                SPCostFolder monthFolder = GetFolderInfo(strListName, strMonthFolderName);
+                if (monthFolder.ID == 0)
+                {
+                    XmlNode newChildNode = imageHelper.CreateNewFolder(strListName, strYearFolderName);
+                    string strNewChildFolderTitle = strYearFolderName + "/" + newChildNode.Attributes["title"].InnerText;
+
+                    #region 文件夹改名
+                    string strNewMonthFolder = string.Format("{0:00}", dtDataCreated.Month);
+                    int iMonthFolderId = UpdateImageFolderName(strListName, listHelper
+                                                    , strNewMonthFolder, strNewChildFolderTitle, strMonthFolderName);
+                    #endregion
+                }
+                #endregion
+
+
+                #region 实际文件夹
+                string strNewFolderName = string.Format("{0:0000}/{1:00}/{2}", dtDataCreated.Year, dtDataCreated.Month, strFolderName);
+                SPCostFolder newFolder = GetFolderInfo(strListName, strNewFolderName);
+                if (newFolder.ID == 0)
+                {
+                    XmlNode newChildNode = imageHelper.CreateNewFolder(strListName, strMonthFolderName);
+                    string strNewChildFolderTitle = strMonthFolderName + "/" + newChildNode.Attributes["title"].InnerText;
+
+                    #region 文件夹改名
+                    iNewFolderId = UpdateImageFolderName(strListName, listHelper
+                                                    , strFolderName, strNewChildFolderTitle, strNewFolderName);
+
+                    #endregion
+                    newFolder = GetFolderInfo(strListName, iNewFolderId);
+                }
+                #endregion
+
+                return newFolder;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+
+        #endregion
+
+        #region 图片文件上传操作
+
+        /// <summary>
+        /// 上传图片到指定的文件夹里面
+        /// </summary>
+        /// <param name="strFileName">图片名称</param>
+        /// <param name="fileData">图片内容</param>
+        /// <param name="ListName">图片库名称</param>
+        /// <param name="FolderName">文件夹名称</param>
+        /// <param name="IsUpload">图片上传是否成功</param>
+        /// <param name="strUploadMessage">图片上传的返回信息</param>
+        /// <returns></returns>
+        public int UploadImageFile(string strFileName, byte[] fileData, string ListName, string FolderName, out bool IsUpload, out string strUploadMessage)
+        {
+            //获取文件夹信息
+            SPCostFolder folder = GetFolderInfo(ListName, FolderName);
+            if (folder.ID == 0)
+            {
+                //文件夹未创建需要创建一个
+                folder = ImageCreateNewFolder(ListName, FolderName, DateTime.Now);
+            }
+            //string strNewFullDocUrl = SPBaseSite + "/" + folder.FileRef + "/" + strFileName;
+            #region 拆分字段
+
+            string[] strFolderUrlSplit = folder.FileRef.Split('/');
+            string strStartIndexKey = folder.ListUrl;
+            int iStartIndex = strFolderUrlSplit.ToList().IndexOf(strStartIndexKey) + 1;
+            string strFolderName = string.Empty;
+            for (int i = iStartIndex; i < strFolderUrlSplit.Length; i++)
+            {
+                strFolderName += strFolderUrlSplit[i] + "/";
+            }
+            strFolderName = strFolderName.Remove(strFolderName.LastIndexOf("/"));
+
+            #endregion
+
+            IsUpload = false;
+
+            Guid? fileId = null;
+            UpFileFullUrl = UploadImageFile(strFileName, fileData, strFolderName
+                                                           , ListName, folder, out IsUpload, out fileId);
+
+            strUploadMessage = UpFileFullUrl;
+
+            return folder.ID;
+        }
+        /// <summary>
+        /// 上传图片到指定的文件夹里面
+        /// </summary>
+        /// <param name="strFileName">图片名称</param>
+        /// <param name="fileData">图片内容</param>
+        /// <param name="ListName">图片库名称</param>
+        /// <param name="FolderId">文件夹编号</param>
+		/// <param name="IsUpload">图片上传是否成功</param>
+        /// <returns></returns>
+        public string UploadImageFile(string strFileName, byte[] fileData, string ListName, int FolderId, out bool IsUpload)
+        {
+            //获取文件夹信息
+            SPCostFolder folder = GetFolderInfo(ListName, FolderId);
+
+            #region 拆分字段
+
+            string[] strFolderUrlSplit = folder.FileRef.Split('/');
+            string strStartIndexKey = folder.ListUrl;
+            int iStartIndex = strFolderUrlSplit.ToList().IndexOf(strStartIndexKey) + 1;
+            string strFolderName = string.Empty;
+            for (int i = iStartIndex; i < strFolderUrlSplit.Length; i++)
+            {
+                strFolderName += strFolderUrlSplit[i] + "/";
+            }
+            strFolderName = strFolderName.Remove(strFolderName.LastIndexOf("/"));
+
+            #endregion
+
+            IsUpload = false;
+
+            Guid? fileId = null;
+            UpFileFullUrl = UploadImageFile(strFileName, fileData, strFolderName
+                                                           , ListName, folder, out IsUpload, out fileId);
+            return UpFileFullUrl;
+        }
+
+        #region 图片上传内部操作
+
+        private string UploadImageFile(string strFileName, byte[] fileData
+                , string strFolderRef
+                , string strListName
+                , SPCostFolder folder
+                , out bool IsUpload
+                , out Guid? fileId
+                )
+        {
+            // 實例化图片库对象
+            SPImageWebService.Imaging imageHelper = new SPImageWebService.Imaging()
+            {
+                Url = FullWebUrl + ImageUrl,
+                Credentials = SPCredential
+            };
+
+
+            #region 上传附件
+            XmlDocument resdoc = new XmlDocument();
+            XmlNode resnode = resdoc.CreateNode(XmlNodeType.Element, "Result", "");
+            resnode = imageHelper.Upload(strListName, strFolderRef, fileData, strFileName, true);
+
+            #endregion
+
+            string strFullDocUrl = SPBaseSite + "/" + folder.FileRef + "/" + strFileName;
+            fileId = null;
+            if (resnode.Name == "Upload")
+            {
+                //文件上传成功的操作
+
+                IsUpload = true;
+                #region 将文件上传信息记录下来
+
+                #region 查询获取刚上传的文件信息
+                SPImage docItem = GetImageFolderFile(strFileName, strListName, folder);
+                fileId = docItem.UniqueId;
+                #endregion
+                int iFolderId = 0;
+                string strFolderName = string.Empty;
+                if (folder != null)
+                {
+                    iFolderId = folder.ID;
+                    strFolderName = folder.FileLeafRef;
+                }
+
+                #region 保存到数据库
+                AddUpFileLog(strListName, iFolderId, strFolderName, strFileName, docItem.UniqueId, strFullDocUrl, 0, 0, string.Empty, fileData);
+                #endregion
+
+                #endregion
+
+                return strFullDocUrl;
+            }
+            else
+            {
+                IsUpload = false;
+                return resnode.InnerText;
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region 图片信息获取
+
+        /// <summary>
+        /// 获取图片库里面的指定图片
+        /// </summary>
+        /// <param name="strFileName">图片名称</param>
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="iFolderId">存放文件夹编号</param>
+        /// <returns></returns>
+        public SPImage GetImageFolderFile(string strFileName, string strListName, int iFolderId)
+        {
+            SPCostFolder folder = GetFolderInfo(strListName, iFolderId);
+            return GetImageFolderFile(strFileName, strListName, folder);
+        }
+
+        /// <summary>
+        /// 获取图片库里面的指定图片
+        /// </summary>
+        /// <param name="strFileName">图片名称</param>
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="folder">文件夹对象</param>
+        /// <returns></returns>
+        public SPImage GetImageFolderFile(string strFileName, string strListName, SPCostFolder folder)
+        {
+            try
+            {
+                #region 拆分字段
+
+                string[] strFolderUrlSplit = folder.FileRef.Split('/');
+                string strStartIndexKey = folder.ListUrl;
+                int iStartIndex = strFolderUrlSplit.ToList().IndexOf(strStartIndexKey) + 1;
+                string strFolderFullName = string.Empty;
+                for (int i = iStartIndex; i < strFolderUrlSplit.Length; i++)
+                {
+                    strFolderFullName += strFolderUrlSplit[i] + "/";
+                }
+                strFolderFullName = strFolderFullName.Remove(strFolderFullName.LastIndexOf("/"));
+
+                #endregion
+
+                SPImages items = GetImageFolderAllFiles(strListName, strFolderFullName);
+
+                SPImage image = new SPDocumentWcfService.SPImage();
+                foreach (SPImage item in items)
+                {
+                    if (item.FileLeafRef == strFileName)
+                    {
+                        image = item;
+                        break;
+                    }
+                }
+                return image;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 获取图片库里面指定文件夹所有图片集合
+        /// </summary>
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="strFolderFullName">文件夹名称</param>
+        /// <returns></returns>
+        public SPImages GetImageFolderFiles(string strListName, string strFolderName)
+        {
+            try
+            {
+                SPCostFolder folder = GetFolderInfo(strListName, strFolderName);
+
+                if (folder.ID > 0)
+                {
+                    #region 拆分字段
+
+                    string[] strFolderUrlSplit = folder.FileRef.Split('/');
+                    string strStartIndexKey = folder.ListUrl;
+                    int iStartIndex = strFolderUrlSplit.ToList().IndexOf(strStartIndexKey) + 1;
+                    string strFolderFullName = string.Empty;
+                    for (int i = iStartIndex; i < strFolderUrlSplit.Length; i++)
+                    {
+                        strFolderFullName += strFolderUrlSplit[i] + "/";
+                    }
+                    strFolderFullName = strFolderFullName.Remove(strFolderFullName.LastIndexOf("/"));
+
+                    #endregion
+
+                    return GetImageFolderAllFiles(strListName, strFolderFullName);
+                }
+                else
+                {
+                    return new SPImages();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        /// <summary>
+        /// 获取图片库里面指定文件夹所有图片集合
+        /// </summary>
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <returns></returns>
+        public SPImages GetImageFolderFiles(string strListName, int iFolderId)
+        {
+            try
+            {
+                SPCostFolder folder = GetFolderInfo(strListName, iFolderId);
+                if (folder.ID > 0)
+                {
+                    #region 拆分字段
+
+                    string[] strFolderUrlSplit = folder.FileRef.Split('/');
+                    string strStartIndexKey = folder.ListUrl;
+                    int iStartIndex = strFolderUrlSplit.ToList().IndexOf(strStartIndexKey) + 1;
+                    string strFolderFullName = string.Empty;
+                    for (int i = iStartIndex; i < strFolderUrlSplit.Length; i++)
+                    {
+                        strFolderFullName += strFolderUrlSplit[i] + "/";
+                    }
+                    strFolderFullName = strFolderFullName.Remove(strFolderFullName.LastIndexOf("/"));
+
+                    #endregion
+
+                    return GetImageFolderAllFiles(strListName, strFolderFullName);
+                }
+                else
+                {
+                    return new SPImages();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        /// <summary>
+        /// 获取图片库里面指定文件夹所有图片集合内部方法
+        /// </summary>
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="strFolderFullName">文件夹完整路径</param>
+        /// <returns></returns>
+        private SPImages GetImageFolderAllFiles(string strListName, string strFolderFullName)
+        {
+            try
+            {
+                SPImages items = new SPImages();
+                // 實例化图片库对象
+                SPImageWebService.Imaging imageHelper = new SPImageWebService.Imaging()
+                {
+                    Url = FullWebUrl + ImageUrl,
+                    Credentials = SPCredential
+                };
+                XmlNode node = imageHelper.GetListItems(strListName, strFolderFullName);
+                foreach (XmlNode childNode in node.ChildNodes)
+                {
+                    if (childNode.LocalName == "row")
+                    {
+                        SPImage item = new SPImage(childNode);
+                        items.Add(item);
+                    }
+                }
+                return items;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        #endregion
+
         #endregion
 
         #region 列表库相关操作
@@ -2932,6 +3232,10 @@ namespace SPDocumentWcfService
             get;
             set;
         }
+        /// <summary>
+        /// 对应的库Url
+        /// </summary>
+        public string ListUrl { get; set; }
         #endregion
     }
 
@@ -3320,6 +3624,179 @@ namespace SPDocumentWcfService
         */
     }
 
+    #endregion
+
+    #region 图片对象
+    /// <summary>
+    /// 对应的SharePoint图片库里面的图片信息
+    /// </summary>
+    [DataContract(IsReference = true)]
+    public class SPImage
+    {
+        #region 属性
+        /// <summary>
+        /// 图片编号
+        /// </summary>
+        [DataMember]
+        public int ID
+        {
+            get;
+            set;
+        }
+        /// <summary>
+        /// 图片唯一编号
+        /// </summary>
+        [DataMember]
+        public Guid UniqueId
+        {
+            get;
+            set;
+        }
+        /// <summary>
+        /// 图片名称
+        /// </summary>
+        [DataMember]
+        public string FileLeafRef
+        {
+            get;
+            set;
+        }
+        /// <summary>
+        /// 图片相对路径
+        /// </summary>
+        [DataMember]
+        public string FileRef
+        {
+            get;
+            set;
+        }
+        /// <summary>
+        /// 图片使用的图标
+        /// </summary>
+        [DataMember]
+        public string DocIcon
+        {
+            get;
+            set;
+        }
+        /// <summary>
+        /// 图片的创建时间
+        /// </summary>
+        [DataMember]
+        public DateTime Created
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// 文件的最后修改时间
+        /// </summary>
+        [DataMember]
+        public DateTime Modified
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// 图片的完整路径
+        /// </summary>
+        [DataMember]
+        public string EncodedAbsUrl
+        {
+            get; set;
+        }
+        #endregion
+
+        #region 内部属性
+
+        /// <summary>
+        /// 图片名称内部关键字
+        /// </summary>
+        private string ImageNameKey = "ows_FileLeafRef";
+        /// <summary>
+        /// 图片相对地址关键字
+        /// </summary>
+        private string ImageUrlKey = "ows_FileRef";
+        /// <summary>
+        /// 编号
+        /// </summary>
+        private string ImageIDKey = "ows_ID";
+        /// <summary>
+        /// 唯一编号
+        /// </summary>
+        private string ImageUniqueIdKey = "ows_UniqueId";
+        /// <summary>
+        /// 图标
+        /// </summary>
+        private string ImageDocIconKey = "ows_DocIcon";
+        /// <summary>
+        /// 添加时间
+        /// </summary>
+        private string ImageCreatedKey = "ows_Created";
+        /// <summary>
+        /// 修改时间
+        /// </summary>
+        private string ImageModifiedKey = "ows_Modified";
+        /// <summary>
+        /// 图片完整路径关键字
+        /// </summary>
+        private string EncodedAbsUrlKey = "ows_EncodedAbsUrl";
+        #endregion
+
+        #region 构造方法
+        public SPImage()
+        {
+
+        }
+
+        public SPImage(XmlNode node) : this()
+        {
+            string strImageName = node.Attributes[ImageNameKey].Value;
+            string strImageUrl = node.Attributes[ImageUrlKey].Value;
+            string strID = node.Attributes[ImageIDKey].Value;
+            string strUID = node.Attributes[ImageUniqueIdKey].Value;
+            string strIcon = node.Attributes[ImageDocIconKey].Value;
+            string strCreated = node.Attributes[ImageCreatedKey].Value;
+            string strModified = node.Attributes[ImageModifiedKey].Value;
+            string strAbsUrl = node.Attributes[EncodedAbsUrlKey].Value;
+
+            ID = Convert.ToInt32(strID);
+            UniqueId = new Guid(strUID.Substring(strUID.IndexOf("#") + 1));
+            FileLeafRef = strImageName.Substring(strImageName.IndexOf("#") + 1);
+            FileRef = strImageUrl.Substring(strImageUrl.IndexOf("#") + 1);
+            DocIcon = strIcon;
+            Created = Convert.ToDateTime(strCreated);
+            Modified = Convert.ToDateTime(strModified);
+            EncodedAbsUrl = strAbsUrl.Substring(strAbsUrl.IndexOf("#") + 1);
+        }
+        #endregion
+    }
+
+    [Serializable]
+    [CollectionDataContract]
+    [KnownType(typeof(SPImage))]
+    public class SPImages : List<SPImage>
+    {
+
+        /// <summary>
+        /// 将类型集合数据用Json方式展示
+        /// </summary>
+        /// <returns></returns>
+        public string ToJsonString()
+        {
+            IsoDateTimeConverter timeConverter = new IsoDateTimeConverter();
+            //这里使用自定义日期格式，如果不使用的话，默认是ISO8601格式  'HH':'mm':'ss"     
+            timeConverter.DateTimeFormat = "yyyy'-'MM'-'dd";
+
+            string strJson = JsonConvert.SerializeObject(this, Newtonsoft.Json.Formatting.Indented, timeConverter);
+
+            return strJson;
+        }
+
+
+    }
     #endregion
 
     #endregion

@@ -337,8 +337,140 @@ namespace SPDocumentWcfService
             return wcfDocs;
         }
 
+        /// <summary>
+        /// 获取指定文件的数据流
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strWebUrl">文件完整地址</param>
+        /// <param name="strListName">所在文档库</param>
+        /// <returns></returns>
+        public byte[] GetWebFileStream(SPSetting setting, string strWebUrl, string strListName)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            byte[] fileContents = docHelper.GetWebFileStream(strWebUrl, strListName);
+            return fileContents;
+        }
+        #endregion
 
 
+        #endregion
+
+        #region 图片库操作方法
+
+        #region 图片库文件夹操作
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <param name="strNewFolderName">文件夹新名称</param>
+        /// <returns></returns>
+        public bool UpdateImageFolderName(SPSetting setting, string strListName, int iFolderId, string strNewFolderName)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            return docHelper.UpdateImageFolderName(strListName, iFolderId, strNewFolderName);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strListName">文档库名称</param>
+        /// <param name="strFolderName">文件夹名称</param>
+        /// <param name="dtDataCreated">创建时间</param>
+        /// <returns></returns>
+        public SPWcfFolder ImageCreateNewFolder(SPSetting setting, string strListName, string strFolderName, DateTime dtDataCreated)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            SPCostFolder folder = docHelper.ImageCreateNewFolder(strListName, strFolderName, dtDataCreated);
+            SPWcfFolder wFolder = new SPDocumentWcfService.SPWcfFolder()
+            {
+                ID = folder.ID,
+                FileRef = folder.FileRef,
+                FileLeafRef = folder.FileLeafRef,
+                FileFullRef = folder.FileFullRef,
+                ListName = folder.ListName,
+                ParentUrl = folder.ParentUrl,
+                UniqueId = folder.UniqueId
+            };
+            return wFolder;
+        }
+
+        #endregion
+
+        #region 图片上传操作
+        /// <summary>
+        /// 上传图片到指定的文件夹里面
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strFileName">图片名称</param>
+        /// <param name="fileData">图片内容</param>
+        /// <param name="ListName">图片库名称</param>
+        /// <param name="FolderName">文件夹名称</param>
+        /// <param name="IsUpload">图片上传是否成功</param>
+        /// <param name="strUploadMessage">图片上传的返回信息</param>
+        /// <returns></returns>
+        public int UploadImageFileByName(SPSetting setting, string strFileName, byte[] fileData, string ListName, string FolderName, out bool IsUpload, out string strUploadMessage)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            return docHelper.UploadImageFile(strFileName, fileData, ListName, FolderName, out IsUpload, out strUploadMessage);
+        }
+        /// <summary>
+        /// 上传图片到指定的文件夹里面
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strFileName">图片名称</param>
+        /// <param name="fileData">图片内容</param>
+        /// <param name="ListName">图片库名称</param>
+        /// <param name="FolderId">文件夹编号</param>
+		/// <param name="IsUpload">图片上传是否成功</param>
+        /// <returns></returns>
+        public string UploadImageFileById(SPSetting setting, string strFileName, byte[] fileData, string ListName, int FolderId, out bool IsUpload)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            return docHelper.UploadImageFile(strFileName, fileData, ListName, FolderId, out IsUpload);
+        }
+        #endregion
+
+        #region 图片信息获取
+        /// <summary>
+        /// 获取图片库里面的指定图片
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <returns></returns>
+        public SPImages GetImageFolderFilesById(SPSetting setting, string strListName, int iFolderId)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            return docHelper.GetImageFolderFiles(strListName, iFolderId);
+        }
+        /// <summary>
+        /// 获取图片库里面的指定图片
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="strFolderFullName">文件夹名称</param>
+        /// <returns></returns>
+        public SPImages GetImageFolderFilesByName(SPSetting setting, string strListName, string strFolderName)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            return docHelper.GetImageFolderFiles(strListName, strFolderName);
+        }
+        /// <summary>
+        /// 获取图片库里面的指定图片
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strFileName">图片名称</param>
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="iFolderId">存放文件夹编号</param>
+        /// <returns></returns>
+        public SPImage GetImageFolderFile(SPSetting setting, string strFileName, string strListName, int iFolderId)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            return docHelper.GetImageFolderFile(strFileName, strListName, iFolderId);
+        }
         #endregion
 
 

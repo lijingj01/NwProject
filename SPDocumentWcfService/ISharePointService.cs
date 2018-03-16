@@ -131,6 +131,9 @@ namespace SPDocumentWcfService
         [OperationContract]
         [ServiceKnownType(typeof(SPWcfDocument))]
         List<SPWcfDocument> GetFolderDocumentsByDB(SPSetting setting, string ListName, int iFolderId);
+
+        [OperationContract]
+        byte[] GetWebFileStream(SPSetting setting, string strWebUrl, string strListName);
         #endregion
 
         #region 文件删除的方法
@@ -160,6 +163,40 @@ namespace SPDocumentWcfService
 
         [OperationContract]
         void UpdateSPListItem(SPSetting setting, string strListName, int iItemId, Dictionary<string, string> updateValue);
+        #endregion
+
+        #region 图片库操作
+
+        #region 文件夹操作
+
+        [OperationContract]
+        bool UpdateImageFolderName(SPSetting setting, string strListName, int iFolderId, string strNewFolderName);
+        [OperationContract]
+        SPWcfFolder ImageCreateNewFolder(SPSetting setting, string strListName, string strFolderName, DateTime dtDataCreated);
+
+        #endregion
+
+        #region 图片上传操作
+        [OperationContract]
+        int UploadImageFileByName(SPSetting setting, string strFileName, byte[] fileData, string ListName, string FolderName, out bool IsUpload, out string strUploadMessage);
+        [OperationContract]
+        string UploadImageFileById(SPSetting setting, string strFileName, byte[] fileData, string ListName, int FolderId, out bool IsUpload);
+
+        #endregion
+
+        #region 图片信息获取
+        [OperationContract]
+        [ServiceKnownType(typeof(SPListItems))]
+        SPImages GetImageFolderFilesById(SPSetting setting, string strListName, int iFolderId);
+        [OperationContract]
+        [ServiceKnownType(typeof(SPListItems))]
+        SPImages GetImageFolderFilesByName(SPSetting setting, string strListName, string strFolderName);
+
+        [OperationContract]
+        SPImage GetImageFolderFile(SPSetting setting, string strFileName, string strListName, int iFolderId);
+
+        #endregion
+
         #endregion
     }
 }
