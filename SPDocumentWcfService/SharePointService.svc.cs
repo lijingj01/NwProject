@@ -241,27 +241,33 @@ namespace SPDocumentWcfService
             List<SPWcfDocument> wcfDocs = new List<SPWcfDocument>();
             foreach (SPCostDocument doc in docs)
             {
-                SPWcfDocument wcfDoc = new SPDocumentWcfService.SPWcfDocument()
-                {
-                    ID = doc.ID,
-                    UniqueId = doc.UniqueId,
-                    FileLeafRef = doc.FileLeafRef,
-                    FileRef = doc.FileRef,
-                    DocIcon = doc.DocIcon,
-                    DelFileFullRef = doc.DelFileFullRef,
-                    FileFullRef = doc.FileFullRef,
-                    FileWebFullRef = doc.FileWebFullRef,
-                    PageNum = doc.PageNum,
-                    DocumentType = doc.DocumentType,
-                    CreateUser = doc.CreateUser,
-                    Created = doc.Created,
-                    ModifieUser = doc.ModifieUser,
-                    FileLeafName = doc.FileLeafName,
-                    DataValues = doc.DataValues
-                };
+                SPWcfDocument wcfDoc = SPDocToWcfDoc(doc);
                 wcfDocs.Add(wcfDoc);
             }
             return wcfDocs;
+        }
+
+        private static SPWcfDocument SPDocToWcfDoc(SPCostDocument doc)
+        {
+            return new SPDocumentWcfService.SPWcfDocument()
+            {
+                ID = doc.ID,
+                UniqueId = doc.UniqueId,
+                FileLeafRef = doc.FileLeafRef,
+                FileRef = doc.FileRef,
+                DocIcon = doc.DocIcon,
+                DelFileFullRef = doc.DelFileFullRef,
+                FileFullRef = doc.FileFullRef,
+                FileWebFullRef = doc.FileWebFullRef,
+                PageNum = doc.PageNum,
+                DocumentType = doc.DocumentType,
+                CreateUser = doc.CreateUser,
+                Created = doc.Created,
+                Modified = doc.Modified,
+                ModifieUser = doc.ModifieUser,
+                FileLeafName = doc.FileLeafName,
+                DataValues = doc.DataValues
+            };
         }
 
         /// <summary>
@@ -278,24 +284,7 @@ namespace SPDocumentWcfService
             List<SPWcfDocument> wcfDocs = new List<SPWcfDocument>();
             foreach (SPCostDocument doc in docs)
             {
-                SPWcfDocument wcfDoc = new SPDocumentWcfService.SPWcfDocument()
-                {
-                    ID = doc.ID,
-                    UniqueId = doc.UniqueId,
-                    FileLeafRef = doc.FileLeafRef,
-                    FileRef = doc.FileRef,
-                    DocIcon = doc.DocIcon,
-                    DelFileFullRef = doc.DelFileFullRef,
-                    FileFullRef = doc.FileFullRef,
-                    FileWebFullRef = doc.FileWebFullRef,
-                    PageNum = doc.PageNum,
-                    DocumentType = doc.DocumentType,
-                    CreateUser = doc.CreateUser,
-                    Created = doc.Created,
-                    ModifieUser = doc.ModifieUser,
-                    FileLeafName = doc.FileLeafName,
-                    DataValues = doc.DataValues
-                };
+                SPWcfDocument wcfDoc = SPDocToWcfDoc(doc);
                 wcfDocs.Add(wcfDoc);
             }
             return wcfDocs;
@@ -314,24 +303,7 @@ namespace SPDocumentWcfService
             List<SPWcfDocument> wcfDocs = new List<SPWcfDocument>();
             foreach (SPCostDocument doc in docs)
             {
-                SPWcfDocument wcfDoc = new SPDocumentWcfService.SPWcfDocument()
-                {
-                    ID = doc.ID,
-                    UniqueId = doc.UniqueId,
-                    FileLeafRef = doc.FileLeafRef,
-                    FileRef = doc.FileRef,
-                    DocIcon = doc.DocIcon,
-                    DelFileFullRef = doc.DelFileFullRef,
-                    FileFullRef = doc.FileFullRef,
-                    FileWebFullRef = doc.FileWebFullRef,
-                    PageNum = doc.PageNum,
-                    DocumentType = doc.DocumentType,
-                    CreateUser = doc.CreateUser,
-                    Created = doc.Created,
-                    ModifieUser = doc.ModifieUser,
-                    FileLeafName = doc.FileLeafName,
-                    DataValues = doc.DataValues
-                };
+                SPWcfDocument wcfDoc = SPDocToWcfDoc(doc);
                 wcfDocs.Add(wcfDoc);
             }
             return wcfDocs;
