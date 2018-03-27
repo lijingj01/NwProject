@@ -3755,6 +3755,12 @@ namespace SPDocumentWcfService
         {
             get; set;
         }
+
+        /// <summary>
+        /// 图片的缩微图路径地址
+        /// </summary>
+        [DataMember]
+        public string ImageSmallUrl { get; set; }
         #endregion
 
         #region 内部属性
@@ -3818,6 +3824,13 @@ namespace SPDocumentWcfService
             Created = Convert.ToDateTime(strCreated);
             Modified = Convert.ToDateTime(strModified);
             EncodedAbsUrl = strAbsUrl.Substring(strAbsUrl.IndexOf("#") + 1);
+
+            #region 定义图片的缩微图地址
+            string strSmallFolder = "_w";
+            string strNewFileName = strSmallFolder + "/" + FileLeafRef.Replace("." + DocIcon, "_" + DocIcon) + "." + DocIcon;
+            ImageSmallUrl = EncodedAbsUrl.Replace(FileLeafRef, strNewFileName);
+
+            #endregion
         }
         #endregion
     }
