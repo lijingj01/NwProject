@@ -149,6 +149,10 @@
       <DependentUpon>SPListItemService.svc</DependentUpon>
     </Compile>
     <Compile Include="StringHelper.cs" />
+    <Compile Include="SysHelper\CString.cs" />
+    <Compile Include="SysHelper\FileHelper.cs" />
+    <Compile Include="SysHelper\MoneyHelper.cs" />
+    <Compile Include="SysHelper\RegexHelper.cs" />
     <Compile Include="Web References\SPCopyWebService\Reference.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

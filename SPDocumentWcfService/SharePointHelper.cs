@@ -782,6 +782,22 @@ namespace SPDocumentWcfService
                         dFolder.FolderName = strNewFolderName;
                         dFolder.FileLeafRef = strNewFolderName;
                         dFolder.FileRef = dFolder.ParentUrl + "/" + strNewFolderName;
+
+                        #region 文件夹更名后需要同步更新已经上传过的文件信息
+                        var files = (from c in fileDBContext.Files
+                                     where c.FolderId == dFolder.FolderId & c.ListName == dFolder.ListName
+                                     select c
+                                     ).ToList();
+                        foreach(Data.Files file in files)
+                        {
+                            string strFileOldFolderName = file.FolderName;
+                            file.FolderName = dFolder.FolderName;
+                            //文件完整地址需要更新
+                            string strOldFile = file.FileWebFullRef;
+                            file.FileWebFullRef = strOldFile.Replace(strFileOldFolderName, dFolder.FolderName);
+                        }
+                        #endregion
+
                         fileDBContext.SubmitChanges();
                     }
                 }
@@ -841,6 +857,22 @@ namespace SPDocumentWcfService
                         dFolder.FolderName = strNewFolderName;
                         dFolder.FileLeafRef = strNewFolderName;
                         dFolder.FileRef = dFolder.ParentUrl + "/" + strNewFolderName;
+
+                        #region 文件夹更名后需要同步更新已经上传过的文件信息
+                        var files = (from c in fileDBContext.Files
+                                     where c.FolderId == dFolder.FolderId & c.ListName == dFolder.ListName
+                                     select c
+                                     ).ToList();
+                        foreach (Data.Files file in files)
+                        {
+                            string strFileOldFolderName = file.FolderName;
+                            file.FolderName = dFolder.FolderName;
+                            //文件完整地址需要更新
+                            string strOldFile = file.FileWebFullRef;
+                            file.FileWebFullRef = strOldFile.Replace(strFileOldFolderName, dFolder.FolderName);
+                        }
+                        #endregion
+
                         fileDBContext.SubmitChanges();
                     }
                 }
