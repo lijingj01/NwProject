@@ -474,6 +474,7 @@ namespace SPDocumentWcfService
                 {
                     file.IsDel = true;
                     file.Modified = DateTime.Now;
+                    file.ModifieUser = UserCode;
                     dataContext.SubmitChanges();
                 }
             }
@@ -487,6 +488,39 @@ namespace SPDocumentWcfService
                 EMailHelper.SendMail("lijingj", strTitle, strBody);
             }
         }
+
+        /// <summary>
+        /// 删除文件时候将上传记录标注为已删除
+        /// </summary>
+        /// <param name="strListName">文档库名称</param>
+        /// <param name="iFolderId">文件夹编号（无文件夹就是0）</param>
+        /// <param name="strFileName">文件名</param>
+        private void DelUpFileLog(string strListName, int iFolderId, string strFileName)
+        {
+            try
+            {
+                Data.FileLogDataClassesDataContext dataContext = new Data.FileLogDataClassesDataContext();
+                //查询记录
+                Data.Files file = dataContext.Files.FirstOrDefault<Data.Files>(c => c.ListName == strListName & c.FolderId == iFolderId & c.FileLeafRef == strFileName);
+                if (file != null)
+                {
+                    file.IsDel = true;
+                    file.Modified = DateTime.Now;
+                    file.ModifieUser = UserCode;
+                    dataContext.SubmitChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                string strTitle = string.Format("删除文件【文档库:{0} 文件夹编号:{1} 文件名:{2}】上传记录时出现错误", strListName, iFolderId, strFileName);
+                string strBody = ex.Message + "<br>";
+                strBody += ex.TargetSite;
+                strBody += ex.StackTrace;
+
+                EMailHelper.SendMail("lijingj", strTitle, strBody);
+            }
+        }
+
 
         #endregion
 
@@ -991,7 +1025,10 @@ namespace SPDocumentWcfService
                 //SPCostList list = GetListInfo(ListName);
                 string strFolderName = folder.FileLeafRef;
                 string strParentUrl = "/" + folder.ParentUrl;
-                return GetFolderInfo(ListName, strParentUrl, strFolderName);
+                SPCostFolder spfolder = GetFolderInfo(ListName, strParentUrl, strFolderName);
+                SPCostList list = GetListInfo(ListName);
+                spfolder.ListUrl = list.ListUrl;
+                return spfolder;
             }
             else
             {
@@ -1747,6 +1784,66 @@ namespace SPDocumentWcfService
         }
 
         #endregion
+
+        #endregion
+
+        #region 图片文件删除操作
+
+        /// <summary>
+        /// 删除指定文件夹里面的图片文件
+        /// </summary>
+        /// <param name="ListName">图片库名称</param>
+        /// <param name="ImageFileName">图片文件名</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <returns></returns>
+        public bool DeleteImageFile(string ListName, string ImageFileName, int iFolderId)
+        {
+            try
+            {
+                bool IsDelFile = false;
+                // 實例化图片库对象
+                SPImageWebService.Imaging imageHelper = new SPImageWebService.Imaging()
+                {
+                    Url = FullWebUrl + ImageUrl,
+                    Credentials = SPCredential
+                };
+                SPCostFolder newFolder = GetFolderInfo(ListName, iFolderId);
+                if (newFolder != null)
+                {
+                    //string strFolderUrl = "2018/03/F001";
+                    #region 拆分字段
+
+                    string[] strFolderUrlSplit = newFolder.FileRef.Split('/');
+                    string strStartIndexKey = newFolder.ListUrl;
+                    int iStartIndex = strFolderUrlSplit.ToList().IndexOf(strStartIndexKey) + 1;
+                    string strFolderFullName = string.Empty;
+                    for (int i = iStartIndex; i < strFolderUrlSplit.Length; i++)
+                    {
+                        strFolderFullName += strFolderUrlSplit[i] + "/";
+                    }
+                    strFolderFullName = strFolderFullName.Remove(strFolderFullName.LastIndexOf("/"));
+
+                    #endregion
+
+                    XmlNode result = imageHelper.Delete(ListName, strFolderFullName, new string[] { ImageFileName });
+                    if(result.Name == "results")
+                    {
+                        #region 将上传记录标注为已删除
+                        DelUpFileLog(ListName, iFolderId, ImageFileName);
+                        #endregion
+                        IsDelFile = true;
+                    }
+                }
+
+               
+                return IsDelFile;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
 
         #endregion
 

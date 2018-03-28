@@ -197,6 +197,11 @@ namespace SPDocumentWcfService
 
         #endregion
 
+        #region 图片文件删除操作
+        [OperationContract]
+        bool DeleteImageFile(SPSetting setting, string ListName, string ImageFileName, int iFolderId);
+        #endregion
+
         #endregion
     }
 }

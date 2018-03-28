@@ -443,6 +443,25 @@ namespace SPDocumentWcfService
             SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             return docHelper.GetImageFolderFile(strFileName, strListName, iFolderId);
         }
+
+        #endregion
+
+        #region 删除图片文件
+
+        /// <summary>
+        /// 删除指定文件夹里面的图片文件
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="ListName">图片库名称</param>
+        /// <param name="ImageFileName">图片文件名</param>
+        /// <param name="iFolderId">文件夹编号</param>
+        /// <returns></returns>
+        public bool DeleteImageFile(SPSetting setting, string ListName, string ImageFileName, int iFolderId)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            return docHelper.DeleteImageFile(ListName, ImageFileName, iFolderId);
+        }
+
         #endregion
 
 
