@@ -133,6 +133,10 @@ namespace SPDocumentWcfService
         List<SPWcfDocument> GetFolderDocumentsByDB(SPSetting setting, string ListName, int iFolderId);
 
         [OperationContract]
+        [ServiceKnownType(typeof(SPWcfDocument))]
+        List<SPWcfDocument> GetFolderDocumentsByName(SPSetting setting, string ListName, string strFolderName);
+
+        [OperationContract]
         byte[] GetWebFileStream(SPSetting setting, string strWebUrl, string strListName);
         #endregion
 

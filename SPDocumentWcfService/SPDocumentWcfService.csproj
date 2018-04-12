@@ -129,6 +129,7 @@
     </Compile>
     <Compile Include="ISharePointService.cs" />
     <Compile Include="ISPListItemService.cs" />
+    <Compile Include="SharePointEntity.cs" />
     <Compile Include="SharePointHelper.cs" />
     <Compile Include="EMailHelper.cs" />
     <Compile Include="Properties\Settings.Designer.cs">

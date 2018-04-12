@@ -228,7 +228,7 @@ namespace SPDocumentWcfService
 
         #region 文件获取相关方法
         /// <summary>
-        /// 获取指定文件夹里面的所有文件集合
+        /// 获取指定文件夹里面的所有文件集合(来自数据库)
         /// </summary>
         /// <param name="setting">配置信息</param>
         /// <param name="ListName">文档库名称</param>
@@ -271,7 +271,7 @@ namespace SPDocumentWcfService
         }
 
         /// <summary>
-        /// 获取指定文件夹里面的所有文件集合(来自数据库)
+        /// 获取指定文件夹里面的所有文件集合(来自接口查询)
         /// </summary>
         /// <param name="setting">配置信息</param>
         /// <param name="ListName">文档库名称</param>
@@ -281,6 +281,26 @@ namespace SPDocumentWcfService
         {
             SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             SPCostDocuments docs = docHelper.GetFolderDocuments(ListName, iFolderId);
+            List<SPWcfDocument> wcfDocs = new List<SPWcfDocument>();
+            foreach (SPCostDocument doc in docs)
+            {
+                SPWcfDocument wcfDoc = SPDocToWcfDoc(doc);
+                wcfDocs.Add(wcfDoc);
+            }
+            return wcfDocs;
+        }
+
+        /// <summary>
+        /// 获取指定文件夹里面的所有文件集合
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="ListName">文档库名称</param>
+        /// <param name="strFolderName">文件夹名称</param>
+        /// <returns></returns>
+        public List<SPWcfDocument> GetFolderDocumentsByName(SPSetting setting, string ListName, string strFolderName)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            SPCostDocuments docs = docHelper.GetFolderDocuments(ListName, strFolderName);
             List<SPWcfDocument> wcfDocs = new List<SPWcfDocument>();
             foreach (SPCostDocument doc in docs)
             {
@@ -461,6 +481,7 @@ namespace SPDocumentWcfService
             SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             return docHelper.DeleteImageFile(ListName, ImageFileName, iFolderId);
         }
+
 
         #endregion
 
