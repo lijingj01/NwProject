@@ -40,6 +40,11 @@ namespace SPDocumentWcfService
         /// Search接口地址
         /// </summary>
         private string SearchUrl = "_vti_bin/spsearch.asmx";
+
+        /// <summary>
+        /// 用户信息接口地址
+        /// </summary>
+        private string UserGroupUrl = "_vti_bin/usergroup.asmx";
         /// <summary>
         /// 各个文件的页数字段名
         /// </summary>
@@ -1963,6 +1968,78 @@ namespace SPDocumentWcfService
 
         #region 图片信息获取
 
+        public SPImage GetImageFile(string ListName, string strFileName)
+        {
+            SPCostList list = GetListInfo(ListName);
+
+            StringBuilder strSerachXml = new StringBuilder();
+            //图片库图片默认名称
+            string strTitleName = "名称";
+            #region 组合查询条件  
+            strSerachXml.Append("<Where>");
+            SPCostListField field = list.Fields.GetField(strTitleName);
+            string strFiledName = field.Name;
+            strSerachXml.AppendFormat("<Eq><FieldRef Name='{0}'/><Value Type='{2}'>{1}</Value></Eq>", strFiledName, strFileName, field.Type);
+            strSerachXml.Append("</Where>");
+            #endregion
+
+            //获取文件夹的编号
+            // 實例化图片库对象
+            SPListWebService.Lists listHelper = new SPListWebService.Lists()
+            {
+                Url = FullWebUrl + ListUrl,
+                Credentials = SPCredential
+            };
+
+            XmlDocument xmlDoc = new System.Xml.XmlDocument();
+
+            XmlNode ndQuery = xmlDoc.CreateNode(XmlNodeType.Element, "Query", "");
+            XmlNode ndViewFields = xmlDoc.CreateNode(XmlNodeType.Element, "ViewFields", "");
+            XmlNode ndQueryOptions = xmlDoc.CreateNode(XmlNodeType.Element, "QueryOptions", "");
+
+            //查询文件列表
+
+            ndViewFields.InnerXml = "<FieldRef Name='ID' />";
+
+            StringBuilder strQueryOptionsXml = new StringBuilder();
+            strQueryOptionsXml.Append("<QueryOptions>");
+            strQueryOptionsXml.Append("<IncludeMandatoryColumns>FALSE</IncludeMandatoryColumns>");
+            strQueryOptionsXml.Append("<DateInUtc>TRUE</DateInUtc>");
+            strQueryOptionsXml.Append("<ExpandUserField>True</ExpandUserField>");
+            strQueryOptionsXml.Append("</QueryOptions>");
+
+            ndViewFields.InnerXml = "<FieldRef Name='ID' />";
+
+
+            ndQuery.InnerXml = strSerachXml.ToString();
+            ndQueryOptions.InnerXml = strQueryOptionsXml.ToString();
+
+            //ndQuery.InnerXml = "";
+            //查询对应的文件
+            XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery, null, null, ndQueryOptions, null);
+
+            SPImages items = new SPImages();
+
+            XmlNamespaceManager ns = new XmlNamespaceManager(ndListItems.OwnerDocument.NameTable);
+            ns.AddNamespace("rs", "urn:schemas-microsoft-com:rowset");
+            ns.AddNamespace("z", "#RowsetSchema");
+            XmlNodeList nodes = ndListItems.SelectNodes(@"//z:row", ns);
+
+            foreach (XmlNode node in nodes)
+            {
+                SPImage item = new SPImage(node);
+                items.Add(item);
+            }
+            if (items.Count() > 0)
+            {
+                return items[0];
+            }
+            else
+            {
+                return new SPImage();
+            }
+        }
+
         /// <summary>
         /// 获取图片库里面的指定图片
         /// </summary>
@@ -2215,18 +2292,60 @@ namespace SPDocumentWcfService
             try
             {
 
+                return GetSPListItems(ListName, SearchList, new Dictionary<string, bool>());
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        /// <summary>
+        /// 获取列表库里面的指定内容的列表项内容
+        /// </summary>
+        /// <param name="ListName">列表库名称</param>
+        /// <param name="SearchList">查询的字段组合</param>
+        /// <param name="OrderList">需要排序的字段组合（字段名/排序顺序:True=Asc|False=Desc）</param>
+        /// <returns></returns>
+        public SPListItems GetSPListItems(string ListName, Dictionary<string, string> SearchList,Dictionary<string,bool> OrderList)
+        {
+            try
+            {
+
                 SPCostList list = GetListInfo(ListName);
 
-                #region 组合查询条件
                 StringBuilder strSerachXml = new StringBuilder();
-                strSerachXml.Append("<Where><And>");
+                #region 组合查询条件
+                strSerachXml.Append("<Where>");
+                if (SearchList.Count > 1)
+                {
+                    strSerachXml.Append("<And>");
+                }
                 foreach (KeyValuePair<string, string> kv in SearchList)
                 {
                     SPCostListField field = list.Fields.GetField(kv.Key);
                     string strFiledName = field.Name;
                     strSerachXml.AppendFormat("<Eq><FieldRef Name='{0}'/><Value Type='{2}'>{1}</Value></Eq>", strFiledName, kv.Value, field.Type);
                 }
-                strSerachXml.Append("</And></Where>");
+                if (SearchList.Count > 1)
+                {
+                    strSerachXml.Append("</And>");
+                }
+                strSerachXml.Append("</Where>");
+                #endregion
+
+                #region 组合排序条件
+                if (OrderList.Count > 0)
+                {
+                    strSerachXml.Append("<OrderBy>");
+                    foreach (KeyValuePair<string, bool> kv in OrderList)
+                    {
+                        SPCostListField field = list.Fields.GetField(kv.Key);
+                        string strFiledName = field.Name;
+                        strSerachXml.AppendFormat("<FieldRef Name='{0}' Ascending='{1}'/>", strFiledName, kv.Value.ToString().ToUpper());
+                    }
+                    strSerachXml.Append("</OrderBy>");
+                }
                 #endregion
 
                 return GetSPListItems(ListName, list, strSerachXml.ToString());
@@ -2292,6 +2411,33 @@ namespace SPDocumentWcfService
 
         #endregion
 
+        #endregion
+
+        #region 用户信息操作
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="userLoginName"></param>
+        /// <returns></returns>
+        public SPUser GetUserInfo(string userLoginName)
+        {
+            try
+            {
+                SPUserGourpWebService.UserGroup userHelper = new SPUserGourpWebService.UserGroup()
+                {
+                    Url = FullWebUrl + UserGroupUrl,
+                    Credentials = SPCredential
+                };
+                userLoginName = "i:0#.w|" + userLoginName;
+                XmlNode ndReturn = userHelper.GetUserInfo(userLoginName);
+                SPUser user = new SPUser(ndReturn);
+                return user;
+            }
+            catch (Exception ex)
+            {
+                return new SPUser();
+            }
+        }
         #endregion
     }
 

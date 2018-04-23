@@ -166,6 +166,10 @@ namespace SPDocumentWcfService
         SPListItems GetSPListItemsBySearch(SPSetting setting, string ListName, Dictionary<string, string> SearchList);
 
         [OperationContract]
+        [ServiceKnownType(typeof(SPListItems))]
+        SPListItems GetSPListItemsBySearchOrder(SPSetting setting, string ListName, Dictionary<string, string> SearchList, Dictionary<string, bool> OrderList);
+
+        [OperationContract]
         void UpdateSPListItem(SPSetting setting, string strListName, int iItemId, Dictionary<string, string> updateValue);
         #endregion
 

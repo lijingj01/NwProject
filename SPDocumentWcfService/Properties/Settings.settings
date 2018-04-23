@@ -14,5 +14,8 @@
     <Setting Name="SPDocumentWcfService_SPImageWebService_Imaging" Type="(Web Service URL)" Scope="Application">
       <Value Profile="(Default)">https://nwscportal.nw-sc.com/_vti_bin/imaging.asmx</Value>
     </Setting>
+    <Setting Name="SPDocumentWcfService_SPUserGourpWebService_UserGroup" Type="(Web Service URL)" Scope="Application">
+      <Value Profile="(Default)">https://nwscportal.nw-sc.com/_vti_bin/UserGroup.asmx</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -62,5 +62,15 @@ namespace SPDocumentWcfService.Properties {
                 return ((string)(this["SPDocumentWcfService_SPImageWebService_Imaging"]));
             }
         }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.SpecialSettingAttribute(global::System.Configuration.SpecialSetting.WebServiceUrl)]
+        [global::System.Configuration.DefaultSettingValueAttribute("https://nwscportal.nw-sc.com/_vti_bin/UserGroup.asmx")]
+        public string SPDocumentWcfService_SPUserGourpWebService_UserGroup {
+            get {
+                return ((string)(this["SPDocumentWcfService_SPUserGourpWebService_UserGroup"]));
+            }
+        }
     }
 }

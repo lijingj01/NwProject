@@ -1614,6 +1614,19 @@ namespace SPDocumentWcfService
         */
     }
 
+    [DataContract]
+    /// <summary>
+    /// 列表库排序枚举
+    /// </summary>
+    public enum SPListOrderByEnum
+    {
+        [EnumMember]
+        Asc,
+        [EnumMember]
+        Desc
+    }
+
+
     #endregion
 
     #region 图片对象
@@ -1749,23 +1762,40 @@ namespace SPDocumentWcfService
 
         public SPImage(XmlNode node) : this()
         {
+
             string strImageName = node.Attributes[ImageNameKey].Value;
             string strImageUrl = node.Attributes[ImageUrlKey].Value;
             string strID = node.Attributes[ImageIDKey].Value;
             string strUID = node.Attributes[ImageUniqueIdKey].Value;
             string strIcon = node.Attributes[ImageDocIconKey].Value;
-            string strCreated = node.Attributes[ImageCreatedKey].Value;
             string strModified = node.Attributes[ImageModifiedKey].Value;
-            string strAbsUrl = node.Attributes[EncodedAbsUrlKey].Value;
 
             ID = Convert.ToInt32(strID);
             UniqueId = new Guid(strUID.Substring(strUID.IndexOf("#") + 1));
             FileLeafRef = strImageName.Substring(strImageName.IndexOf("#") + 1);
             FileRef = strImageUrl.Substring(strImageUrl.IndexOf("#") + 1);
             DocIcon = strIcon;
-            Created = Convert.ToDateTime(strCreated);
             Modified = Convert.ToDateTime(strModified);
-            EncodedAbsUrl = strAbsUrl.Substring(strAbsUrl.IndexOf("#") + 1);
+
+            if (node.Attributes[ImageCreatedKey] != null)
+            {
+                string strCreated = node.Attributes[ImageCreatedKey].Value;
+                Created = Convert.ToDateTime(strCreated);
+            }
+            else
+            {
+                Created = Modified;
+            }
+
+            if (node.Attributes[EncodedAbsUrlKey] != null)
+            {
+                string strAbsUrl = node.Attributes[EncodedAbsUrlKey].Value;
+                EncodedAbsUrl = strAbsUrl.Substring(strAbsUrl.IndexOf("#") + 1);
+            }
+            else
+            {
+                EncodedAbsUrl = FileRef;
+            }
 
             #region 定义图片的缩微图地址
             string strSmallFolder = "_w";
@@ -1800,6 +1830,84 @@ namespace SPDocumentWcfService
 
 
     }
+    #endregion
+
+    #region 用户对象
+
+    [DataContract]
+    public class SPUser
+    {
+        #region 用户属性
+
+        /// <summary>
+        /// 用户编号
+        /// </summary>
+        [DataMember]
+        public int UserID { get; set; }
+        /// <summary>
+        /// 用户账号
+        /// </summary>
+        [DataMember]
+        public string UserName { get; set; }
+
+        /// <summary>
+        /// 用户邮箱地址
+        /// </summary>
+        [DataMember]
+        public string Email { get; set; }
+        /// <summary>
+        /// 用户登陆账号
+        /// </summary>
+        [DataMember]
+        public string LoginName { get; set; }
+
+        #endregion
+
+        #region 构造函数
+        public SPUser()
+        {
+            UserID = 0;
+            UserName = string.Empty;
+            Email = string.Empty;
+            LoginName = string.Empty;
+        }
+
+        internal SPUser(XmlNode ndUserInfo) : this()
+        {
+            if (ndUserInfo.ChildNodes.Count > 0)
+            {
+                XmlNode cnode = ndUserInfo.ChildNodes[0];
+
+                UserID = Convert.ToInt32(cnode.Attributes["ID"].Value);
+                UserName = cnode.Attributes["Name"].Value;
+                Email = cnode.Attributes["Email"].Value;
+
+                string strLogin = cnode.Attributes["LoginName"].Value;
+                if (strLogin.IndexOf("|") > -1)
+                {
+                    string[] strLoginList = strLogin.Split('|');
+                    if (strLoginList.Length > 1)
+                    {
+                        LoginName = strLoginList[1];
+                    }
+                }
+                else
+                {
+                    LoginName = strLogin;
+                }
+            }
+        }
+        #endregion
+    }
+
+    [Serializable]
+    [CollectionDataContract]
+    [KnownType(typeof(SPUser))]
+    public class SPUsers : List<SPUser>
+    {
+
+    }
+
     #endregion
 
     #endregion

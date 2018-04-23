@@ -41,6 +41,22 @@ namespace SPDocumentWcfService
         }
 
         /// <summary>
+        /// 获取指定列表库按条件查询和排序的列表项
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="ListName">列表库名称</param>
+        /// <param name="SearchList">查询条件（key:字段名/value:字段内容）</param>
+        /// <param name="OrderList">需要排序的字段组合（key:字段名/value:排序顺序:True=Asc|False=Desc）</param>
+        /// <returns></returns>
+        public SPListItems GetSPListItemsBySearchOrder(SPSetting setting, string ListName, Dictionary<string, string> SearchList, Dictionary<string, bool> OrderList)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            SPListItems items = docHelper.GetSPListItems(ListName, SearchList, OrderList);
+            return items;
+        }
+
+
+        /// <summary>
         /// 更新列表库指定列表项字段内容
         /// </summary>
         /// <param name="setting">配置信息</param>
