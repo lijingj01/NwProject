@@ -1299,7 +1299,7 @@ namespace SPDocumentWcfService
         /// 列表项内容简易数据
         /// </summary>
         [DataMember]
-        public Dictionary<string,string> DataItems { get; set; }
+        public Dictionary<string, string> DataItems { get; set; }
 
         /// <summary>
         /// 列表数据集合
@@ -1333,7 +1333,11 @@ namespace SPDocumentWcfService
         /// <summary>
         /// 修改时间
         /// </summary>
-        private string ItemModified = "ows_Created";
+        private string ItemModified = "ows_Modified";
+        /// <summary>
+        /// 创建时间
+        /// </summary>
+        private string ItemCreated = "ows_Created";
         #endregion
 
         #region 构造函数
@@ -1356,7 +1360,15 @@ namespace SPDocumentWcfService
 
             string strID = node.Attributes[ItemID].Value;
             string strUID = node.Attributes[ItemUniqueId].Value;
-            string strModified = node.Attributes[ItemModified].Value;
+            string strModified = DateTime.Now.ToString();
+            if (node.Attributes[ItemModified] != null)
+            {
+                strModified = node.Attributes[ItemModified].Value;
+            }
+            else if (node.Attributes[ItemCreated] != null)
+            {
+                strModified = node.Attributes[ItemCreated].Value;
+            }
 
             ID = Convert.ToInt32(strID);
             UniqueId = new Guid(strUID.Substring(strUID.IndexOf("#") + 1));
@@ -1377,8 +1389,20 @@ namespace SPDocumentWcfService
                         dv.DataValue = value;
                         DataValues.Add(dv);
                         //加入键值对
+                        #region 特殊字段处理
+                        string strDataValue = dv.DataValue;
+                        if (dv.DataType == "URL")
+                        {
+                            string[] strDvs = strDataValue.Split(',');
+                            if (strDvs.Length > 0)
+                            {
+                                strDataValue = strDvs[0];
+                            }
+                        }
+                        //加入键值对
+                        DataItems.Add(dv.DataName, strDataValue);
 
-                        DataItems.Add(dv.DataName, dv.DataValue);
+                        #endregion
                     }
                 }
             }
@@ -1614,18 +1638,45 @@ namespace SPDocumentWcfService
         */
     }
 
+
+    #region 查询专用
+
     [DataContract]
     /// <summary>
-    /// 列表库排序枚举
+    /// 列表库查询对象
     /// </summary>
-    public enum SPListOrderByEnum
+    public class SPListSearch
     {
-        [EnumMember]
-        Asc,
-        [EnumMember]
-        Desc
+        #region 属性
+        /// <summary>
+        /// 查询的字段
+        /// </summary>
+        [DataMember]
+        public string SearchFieldName { get; set; }
+        /// <summary>
+        /// 查询的条件
+        /// </summary>
+        [DataMember]
+        public string SearchFieldValue { get; set; }
+
+        /// <summary>
+        /// 查询的判断逻辑
+        /// </summary>
+        [DataMember]
+        public SPListSearchTypeEnum SearchType { get; set; }
+        #endregion
     }
 
+    [Serializable]
+    [CollectionDataContract]
+    [KnownType(typeof(SPListSearch))]
+    public class SPListSearchs : List<SPListSearch>
+    {
+
+    }
+
+
+    #endregion
 
     #endregion
 
@@ -1718,6 +1769,31 @@ namespace SPDocumentWcfService
         public string ImageSmallUrl { get; set; }
         #endregion
 
+        #region 扩展属性
+        /// <summary>
+        /// 图片简称，没有后缀
+        /// </summary>
+        [DataMember]
+        public string FileSmallName
+        {
+            get;
+            set;
+        }
+        /// <summary>
+        /// 图片库信息
+        /// </summary>
+        internal SPCostList SPList
+        {
+            get;
+            set;
+        }
+        /// <summary>
+        /// 列表项内容简易数据
+        /// </summary>
+        [DataMember]
+        public Dictionary<string, string> DataItems { get; set; }
+        #endregion
+
         #region 内部属性
 
         /// <summary>
@@ -1757,7 +1833,8 @@ namespace SPDocumentWcfService
         #region 构造方法
         public SPImage()
         {
-
+            ID = 0;
+            DataItems = new Dictionary<string, string>();
         }
 
         public SPImage(XmlNode node) : this()
@@ -1803,7 +1880,86 @@ namespace SPDocumentWcfService
             ImageSmallUrl = EncodedAbsUrl.Replace(FileLeafRef, strNewFileName);
 
             #endregion
+
+            this.FileSmallName = this.FileLeafRef.Replace("." + this.DocIcon, "");
         }
+
+        public SPImage(XmlNode node, SPCostList list) : this()
+        {
+            this.SPList = list;
+            string strImageName = node.Attributes[ImageNameKey].Value;
+            string strImageUrl = node.Attributes[ImageUrlKey].Value;
+            string strID = node.Attributes[ImageIDKey].Value;
+            string strUID = node.Attributes[ImageUniqueIdKey].Value;
+            string strIcon = node.Attributes[ImageDocIconKey].Value;
+            string strModified = node.Attributes[ImageModifiedKey].Value;
+
+            ID = Convert.ToInt32(strID);
+            UniqueId = new Guid(strUID.Substring(strUID.IndexOf("#") + 1));
+            FileLeafRef = strImageName.Substring(strImageName.IndexOf("#") + 1);
+            FileRef = strImageUrl.Substring(strImageUrl.IndexOf("#") + 1);
+            DocIcon = strIcon;
+            Modified = Convert.ToDateTime(strModified);
+
+            if (node.Attributes[ImageCreatedKey] != null)
+            {
+                string strCreated = node.Attributes[ImageCreatedKey].Value;
+                Created = Convert.ToDateTime(strCreated);
+            }
+            else
+            {
+                Created = Modified;
+            }
+
+            if (node.Attributes[EncodedAbsUrlKey] != null)
+            {
+                string strAbsUrl = node.Attributes[EncodedAbsUrlKey].Value;
+                EncodedAbsUrl = strAbsUrl.Substring(strAbsUrl.IndexOf("#") + 1);
+            }
+            else
+            {
+                EncodedAbsUrl = this.SPList.SPBaseSite + "/" + FileRef;
+            }
+
+            #region 扩展属性
+            foreach (SPCostListField field in SPList.Fields)
+            {
+                string strFieldName = "ows_" + field.Name;
+                if (node.Attributes[strFieldName] != null)
+                {
+                    if (!DataItems.ContainsKey(field.DisplayName))
+                    {
+                        string value = node.Attributes[strFieldName].Value;
+                        #region 特殊字段处理
+
+                        string strDataValue = value;
+                        if (field.Type == "URL")
+                        {
+                            string[] strDvs = strDataValue.Split(',');
+                            if (strDvs.Length > 0)
+                            {
+                                strDataValue = strDvs[0];
+                            }
+                        }
+                        //加入键值对
+                        DataItems.Add(field.DisplayName, strDataValue);
+
+                        #endregion
+                    }
+                }
+            }
+            #endregion
+
+            #region 定义图片的缩微图地址
+            string strSmallFolder = "_w";
+            string strNewFileName = strSmallFolder + "/" + FileLeafRef.Replace("." + DocIcon, "_" + DocIcon) + "." + DocIcon;
+            ImageSmallUrl = EncodedAbsUrl.Replace(FileLeafRef, strNewFileName);
+
+            #endregion
+
+            this.FileSmallName = this.FileLeafRef.Replace("." + this.DocIcon, "");
+        }
+
         #endregion
     }
 
@@ -1913,6 +2069,110 @@ namespace SPDocumentWcfService
     #endregion
 
     #region SharePoint相关接口枚举
+
+    [DataContract]
+    [Flags]
+    /// <summary>
+    /// 列表库排序枚举
+    /// </summary>
+    public enum SPListOrderByEnum
+    {
+        /// <summary>
+        /// 顺序排列
+        /// </summary>
+        [EnumMember]
+        Asc = 1,
+        /// <summary>
+        /// 倒序排列
+        /// </summary>
+        [EnumMember]
+        Desc = 0
+    }
+
+    /// <summary>
+    /// 列表查询判断条件类型
+    /// </summary>
+    [DataContract]
+    [Flags]
+    public enum SPListSearchTypeEnum
+    {
+        /// <summary>
+        /// 等于
+        /// </summary>
+        [EnumMember]
+        Eq = 0,
+        /// <summary>
+        /// 不等于
+        /// </summary>
+        [EnumMember]
+        Neq = 1,
+        /// <summary>
+        /// 小于
+        /// </summary>
+        [EnumMember]
+        Lt = 2,
+        /// <summary>
+        /// 小于等于
+        /// </summary>
+        [EnumMember]
+        Leq = 3,
+        /// <summary>
+        /// 大于
+        /// </summary>
+        [EnumMember]
+        Gt = 4,
+        /// <summary>
+        /// 大于等于
+        /// </summary>
+        [EnumMember]
+        Geq = 5,
+        /// <summary>
+        /// 包含
+        /// </summary>
+        [EnumMember]
+        Contains = 6,
+        /// <summary>
+        /// 以某字符串开头
+        /// </summary>
+        [EnumMember]
+        BeginsWith = 7,
+        /// <summary>
+        /// 在集合范围内
+        /// </summary>
+        [EnumMember]
+        In = 8,
+        /// <summary>
+        /// 为空
+        /// </summary>
+        [EnumMember]
+        IsNull = 9,
+        /// <summary>
+        /// 不为空
+        /// </summary>
+        [EnumMember]
+        IsNotNull = 10,
+        /// <summary>
+        /// 属于用户组
+        /// </summary>
+        [EnumMember]
+        Membership = 11
+    }
+
+    [DataContract]
+    [Flags]
+    public enum FileType
+    {
+
+        [EnumMember]
+        Audio = 0,
+        [EnumMember]
+        Video = 1,
+        [EnumMember]
+        Picture = 2,
+        [EnumMember]
+        Other = 3
+    }
+
     /// <summary>
     /// SharePoint接口返回相关数据类型
     /// </summary>

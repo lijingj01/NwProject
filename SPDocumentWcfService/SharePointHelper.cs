@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using JohnHolliday.Caml.Net;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
@@ -2041,6 +2042,233 @@ namespace SPDocumentWcfService
         }
 
         /// <summary>
+        /// 按条件获取图片库的图片集合
+        /// </summary>
+        /// <param name="ListName">图片库名称</param>
+        /// <param name="SearchList">查询条件</param>
+        /// <param name="OrderList">排序字段（字段名/排序顺序:True=Asc|False=Desc）</param>
+        /// <returns></returns>
+        public SPImages GetImageFiles(string ListName, SPListSearchs SearchList, Dictionary<string, SPListOrderByEnum> OrderList)
+        {
+            SPCostList list = GetListInfo(ListName);
+
+            StringBuilder strSerachXml = new StringBuilder();
+
+            #region 组合查询条件
+
+            List<string> eqList = new List<string>();
+
+            int iIndex = 0;
+            foreach (SPListSearch ls in SearchList)
+            {
+                iIndex++;
+                SPCostListField field = list.Fields.GetField(ls.SearchFieldName);
+                string strFiledName = field.Name;
+                
+                string strFieldCMAL = CAML.FieldRef(strFiledName);
+                string strValueCAML = CAML.Value(field.Type, ls.SearchFieldValue);
+
+                #region 判断逻辑
+
+                string strSearchInfo = string.Empty;
+                switch (ls.SearchType)
+                {
+                    case SPListSearchTypeEnum.Eq:
+                        strSearchInfo = CAML.Eq(strFieldCMAL, strValueCAML);
+                        break;
+                    case SPListSearchTypeEnum.Neq:
+                        strSearchInfo = CAML.Neq(strFieldCMAL, strValueCAML);
+                        break;
+                    case SPListSearchTypeEnum.Lt:
+                        strSearchInfo = CAML.Lt(strFieldCMAL, strValueCAML);
+                        break;
+                    case SPListSearchTypeEnum.Leq:
+                        strSearchInfo = CAML.Leq(strFieldCMAL, strValueCAML);
+                        break;
+                    case SPListSearchTypeEnum.Gt:
+                        strSearchInfo = CAML.Gt(strFieldCMAL, strValueCAML);
+                        break;
+                    case SPListSearchTypeEnum.Geq:
+                        strSearchInfo = CAML.Geq(strFieldCMAL, strValueCAML);
+                        break;
+                    case SPListSearchTypeEnum.IsNull:
+                        strSearchInfo = CAML.IsNull(strFieldCMAL);
+                        break;
+                    case SPListSearchTypeEnum.IsNotNull:
+                        strSearchInfo = CAML.IsNotNull(strFieldCMAL);
+                        break;
+                    case SPListSearchTypeEnum.Contains:
+                        strSearchInfo = CAML.Contains(strFieldCMAL, strValueCAML);
+                        break;
+                    case SPListSearchTypeEnum.BeginsWith:
+                        strSearchInfo = CAML.BeginsWith(strFieldCMAL, strValueCAML);
+                        break;
+                    default: break;
+                }
+
+                eqList.Add(strSearchInfo);
+
+                #endregion
+            }
+
+            #region 按条件数量组合                
+            if (eqList.Count > 2)
+            {
+                #region 超过2个条件需组合And查询
+
+                string strCAML = string.Empty;
+                while (eqList.Count >= 3)
+                {
+                    strCAML = CAML.And(eqList[0], eqList[1]);
+                    string strT1 = eqList[0];
+                    string strT2 = eqList[1];
+                    string strT3 = eqList[2];
+                    eqList.Remove(strT1);
+                    eqList.Remove(strT2);
+
+                    strCAML = CAML.And(strCAML, strT3);
+                    eqList.Remove(strT3);
+                }
+
+                if (eqList.Count == 2)
+                {
+                    strCAML = CAML.And(strCAML, eqList[0]);
+                    strCAML = CAML.And(strCAML, eqList[1]);
+                }
+                else if (eqList.Count == 1)
+                {
+                    strCAML = CAML.And(strCAML, eqList[0]);
+                }
+
+                #endregion
+                strSerachXml.Append(CAML.Where(strCAML));
+            }
+            else if (eqList.Count == 2)
+            {
+                #region 2个条件以内
+                strSerachXml.Append(CAML.Where(
+                                                CAML.And(eqList[0], eqList[1])
+                                      )
+                                    );
+                #endregion
+            }
+            else
+            {
+                #region 单个条件
+                strSerachXml.Append(CAML.Where(eqList[0]));
+                #endregion
+            }
+
+            #endregion
+
+            #endregion
+
+            #region 组合排序条件
+            if (OrderList.Count > 0)
+            {
+                List<string> strOrderBys = new List<string>();
+                foreach (KeyValuePair<string, SPListOrderByEnum> kv in OrderList)
+                {
+                    SPCostListField field = list.Fields.GetField(kv.Key);
+                    string strFiledName = field.Name;
+                    strOrderBys.Add(CAML.FieldRef(strFiledName, kv.Value == SPListOrderByEnum.Desc ? CAML.SortType.Descending : CAML.SortType.Ascending));
+                }
+                strSerachXml.Append(CAML.OrderBy(strOrderBys.ToArray()));
+            }
+            #endregion
+
+            #region 旧处理方法
+
+            /*
+            #region 组合查询条件 
+            if (SearchList.Count > 0)
+            {
+                strSerachXml.Append("<Where>");
+                if (SearchList.Count > 1)
+                {
+                    strSerachXml.Append("<And>");
+                }
+                foreach (KeyValuePair<string, string> kv in SearchList)
+                {
+                    SPCostListField field = list.Fields.GetField(kv.Key);
+                    string strFiledName = field.Name;
+                    strSerachXml.AppendFormat("<Eq><FieldRef Name='{0}'/><Value Type='{2}'>{1}</Value></Eq>", strFiledName, kv.Value, field.Type);
+                }
+                if (SearchList.Count > 1)
+                {
+                    strSerachXml.Append("</And>");
+                }
+                strSerachXml.Append("</Where>");
+            }
+            #endregion
+
+            #region 组合排序条件
+            if (OrderList.Count() > 0)
+            {
+                strSerachXml.Append("<OrderBy>");
+                foreach (KeyValuePair<string, bool> kv in OrderList)
+                {
+                    SPCostListField field = list.Fields.GetField(kv.Key);
+                    string strFiledName = field.Name;
+                    strSerachXml.AppendFormat("<FieldRef Name='{0}' Ascending='{1}'/>", strFiledName, (kv.Value).ToString().ToUpper());
+                }
+                strSerachXml.Append("</OrderBy>");
+            }
+            #endregion
+            */
+
+            #endregion
+
+            //获取文件夹的编号
+            SPListWebService.Lists listHelper = new SPListWebService.Lists()
+            {
+                Url = FullWebUrl + ListUrl,
+                Credentials = SPCredential
+            };
+            XmlDocument xmlDoc = new System.Xml.XmlDocument();
+
+            XmlNode ndQuery = xmlDoc.CreateNode(XmlNodeType.Element, "Query", "");
+            XmlNode ndViewFields = xmlDoc.CreateNode(XmlNodeType.Element, "ViewFields", "");
+            XmlNode ndQueryOptions = xmlDoc.CreateNode(XmlNodeType.Element, "QueryOptions", "");
+
+            //查询文件列表
+
+            ndViewFields.InnerXml = "<FieldRef Name='ID' />";
+
+            StringBuilder strQueryOptionsXml = new StringBuilder();
+            strQueryOptionsXml.Append("<QueryOptions>");
+            strQueryOptionsXml.Append("<IncludeMandatoryColumns>FALSE</IncludeMandatoryColumns>");
+            strQueryOptionsXml.Append("<DateInUtc>TRUE</DateInUtc>");
+            strQueryOptionsXml.Append("<ExpandUserField>True</ExpandUserField>");
+            strQueryOptionsXml.Append("</QueryOptions>");
+
+            ndViewFields.InnerXml = "<FieldRef Name='ID' />";
+
+
+            ndQuery.InnerXml = strSerachXml.ToString();
+            ndQueryOptions.InnerXml = strQueryOptionsXml.ToString();
+
+            //ndQuery.InnerXml = "";
+            //查询对应的文件
+            XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery, null, null, ndQueryOptions, null);
+
+            SPImages items = new SPImages();
+
+            XmlNamespaceManager ns = new XmlNamespaceManager(ndListItems.OwnerDocument.NameTable);
+            ns.AddNamespace("rs", "urn:schemas-microsoft-com:rowset");
+            ns.AddNamespace("z", "#RowsetSchema");
+            XmlNodeList nodes = ndListItems.SelectNodes(@"//z:row", ns);
+
+            foreach (XmlNode node in nodes)
+            {
+                SPImage item = new SPImage(node, list);
+                items.Add(item);
+            }
+            return items;
+        }
+
+
+        /// <summary>
         /// 获取图片库里面的指定图片
         /// </summary>
         /// <param name="strFileName">图片名称</param>
@@ -2287,12 +2515,12 @@ namespace SPDocumentWcfService
         /// <param name="ListName">列表库名称</param>
         /// <param name="SearchList">查询的字段组合</param>
         /// <returns></returns>
-        public SPListItems GetSPListItems(string ListName, Dictionary<string, string> SearchList)
+        public SPListItems GetSPListItems(string ListName, SPListSearchs SearchList)
         {
             try
             {
 
-                return GetSPListItems(ListName, SearchList, new Dictionary<string, bool>());
+                return GetSPListItems(ListName, SearchList, new Dictionary<string, SPListOrderByEnum>());
             }
             catch (Exception ex)
             {
@@ -2307,7 +2535,7 @@ namespace SPDocumentWcfService
         /// <param name="SearchList">查询的字段组合</param>
         /// <param name="OrderList">需要排序的字段组合（字段名/排序顺序:True=Asc|False=Desc）</param>
         /// <returns></returns>
-        public SPListItems GetSPListItems(string ListName, Dictionary<string, string> SearchList,Dictionary<string,bool> OrderList)
+        public SPListItems GetSPListItems(string ListName, SPListSearchs SearchList,Dictionary<string, SPListOrderByEnum> OrderList)
         {
             try
             {
@@ -2316,35 +2544,145 @@ namespace SPDocumentWcfService
 
                 StringBuilder strSerachXml = new StringBuilder();
                 #region 组合查询条件
-                strSerachXml.Append("<Where>");
-                if (SearchList.Count > 1)
+                //strSerachXml.Append("<Where>");
+                //if (SearchList.Count > 1)
+                //{
+                //    strSerachXml.Append("<And>");
+                //}
+                //foreach (KeyValuePair<string, string> kv in SearchList)
+                //{
+                //    SPCostListField field = list.Fields.GetField(kv.Key);
+                //    string strFiledName = field.Name;
+                //    strSerachXml.AppendFormat("<Eq><FieldRef Name='{0}'/><Value Type='{2}'>{1}</Value></Eq>", strFiledName, kv.Value, field.Type);
+                //}
+                //if (SearchList.Count > 1)
+                //{
+                //    strSerachXml.Append("</And>");
+                //}
+                //strSerachXml.Append("</Where>");
+
+
+                List<string> eqList = new List<string>();
+
+                int iIndex = 0;
+                foreach (SPListSearch ls in SearchList)
                 {
-                    strSerachXml.Append("<And>");
-                }
-                foreach (KeyValuePair<string, string> kv in SearchList)
-                {
-                    SPCostListField field = list.Fields.GetField(kv.Key);
+                    iIndex++;
+                    SPCostListField field = list.Fields.GetField(ls.SearchFieldName);
                     string strFiledName = field.Name;
-                    strSerachXml.AppendFormat("<Eq><FieldRef Name='{0}'/><Value Type='{2}'>{1}</Value></Eq>", strFiledName, kv.Value, field.Type);
+
+                    string strFieldCMAL = CAML.FieldRef(strFiledName);
+                    string strValueCAML = CAML.Value(field.Type, ls.SearchFieldValue);
+
+                    #region 判断逻辑
+
+                    string strSearchInfo = string.Empty;
+                    switch (ls.SearchType)
+                    {
+                        case SPListSearchTypeEnum.Eq:
+                            strSearchInfo = CAML.Eq(strFieldCMAL, strValueCAML);
+                            break;
+                        case SPListSearchTypeEnum.Neq:
+                            strSearchInfo = CAML.Neq(strFieldCMAL, strValueCAML);
+                            break;
+                        case SPListSearchTypeEnum.Lt:
+                            strSearchInfo = CAML.Lt(strFieldCMAL, strValueCAML);
+                            break;
+                        case SPListSearchTypeEnum.Leq:
+                            strSearchInfo = CAML.Leq(strFieldCMAL, strValueCAML);
+                            break;
+                        case SPListSearchTypeEnum.Gt:
+                            strSearchInfo = CAML.Gt(strFieldCMAL, strValueCAML);
+                            break;
+                        case SPListSearchTypeEnum.Geq:
+                            strSearchInfo = CAML.Geq(strFieldCMAL, strValueCAML);
+                            break;
+                        case SPListSearchTypeEnum.IsNull:
+                            strSearchInfo = CAML.IsNull(strFieldCMAL);
+                            break;
+                        case SPListSearchTypeEnum.IsNotNull:
+                            strSearchInfo = CAML.IsNotNull(strFieldCMAL);
+                            break;
+                        case SPListSearchTypeEnum.Contains:
+                            strSearchInfo = CAML.Contains(strFieldCMAL, strValueCAML);
+                            break;
+                        case SPListSearchTypeEnum.BeginsWith:
+                            strSearchInfo = CAML.BeginsWith(strFieldCMAL, strValueCAML);
+                            break;
+                        default:break;
+                    }
+
+                    eqList.Add(strSearchInfo);
+
+                    #endregion
                 }
-                if (SearchList.Count > 1)
+
+                #region 按条件数量组合                
+                if (eqList.Count > 2)
                 {
-                    strSerachXml.Append("</And>");
+                    #region 超过2个条件需组合And查询
+
+                    string strCAML = string.Empty;
+                    while (eqList.Count >= 3)
+                    {
+                        strCAML = CAML.And(eqList[0], eqList[1]);
+                        string strT1 = eqList[0];
+                        string strT2 = eqList[1];
+                        string strT3 = eqList[2];
+                        eqList.Remove(strT1);
+                        eqList.Remove(strT2);
+
+                        strCAML = CAML.And(strCAML, strT3);
+                        eqList.Remove(strT3);
+                    }
+
+                    if (eqList.Count == 2)
+                    {
+                        strCAML = CAML.And(strCAML, eqList[0]);
+                        strCAML = CAML.And(strCAML, eqList[1]);
+                    }
+                    else if (eqList.Count == 1)
+                    {
+                        strCAML = CAML.And(strCAML, eqList[0]);
+                    }
+
+                    #endregion
+                    strSerachXml.Append(CAML.Where(strCAML));
                 }
-                strSerachXml.Append("</Where>");
+                else if (eqList.Count == 2)
+                {
+                    #region 2个条件以内
+                    strSerachXml.Append(CAML.Where(
+                                                    CAML.And(eqList[0], eqList[1])
+                                          )
+                                        );
+                    #endregion
+                }
+                else
+                {
+                    #region 单个条件
+                    strSerachXml.Append(CAML.Where(eqList[0]));
+                    #endregion
+                }
+
+                #endregion
+
                 #endregion
 
                 #region 组合排序条件
                 if (OrderList.Count > 0)
                 {
-                    strSerachXml.Append("<OrderBy>");
-                    foreach (KeyValuePair<string, bool> kv in OrderList)
+                    List<string> strOrderBys = new List<string>();
+                    //strSerachXml.Append("<OrderBy>");
+                    foreach (KeyValuePair<string, SPListOrderByEnum> kv in OrderList)
                     {
                         SPCostListField field = list.Fields.GetField(kv.Key);
                         string strFiledName = field.Name;
-                        strSerachXml.AppendFormat("<FieldRef Name='{0}' Ascending='{1}'/>", strFiledName, kv.Value.ToString().ToUpper());
+                        //strSerachXml.AppendFormat("<FieldRef Name='{0}' Ascending='{1}'/>", strFiledName, kv.Value.ToString().ToUpper());
+                        strOrderBys.Add(CAML.FieldRef(strFiledName, kv.Value == SPListOrderByEnum.Desc ? CAML.SortType.Descending : CAML.SortType.Ascending));
                     }
-                    strSerachXml.Append("</OrderBy>");
+                    //strSerachXml.Append("</OrderBy>");
+                    strSerachXml.Append(CAML.OrderBy(strOrderBys.ToArray()));
                 }
                 #endregion
 
@@ -2373,7 +2711,7 @@ namespace SPDocumentWcfService
             //查询文件列表
 
             ndViewFields.InnerXml = "<FieldRef Name='ID' />";
-
+            
             StringBuilder strQueryOptionsXml = new StringBuilder();
             strQueryOptionsXml.Append("<QueryOptions>");
             strQueryOptionsXml.Append("<IncludeMandatoryColumns>FALSE</IncludeMandatoryColumns>");

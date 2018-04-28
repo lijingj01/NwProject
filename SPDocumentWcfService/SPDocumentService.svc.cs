@@ -234,9 +234,14 @@ namespace SPDocumentWcfService
             return wcfDocs[0];
         }
 
+        public FileType GetFileTypeTest(string value)
+        {
+            return FileType.Audio;
+        }
+
 
         #endregion
 
-        
+
     }
 }

@@ -16,6 +16,8 @@ namespace SPDocumentWcfService
     {
         #region 测试方法
 
+        FileType GetFileTypeTest(string value);
+
         [OperationContract]
         string GetData(int value);
 

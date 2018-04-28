@@ -33,7 +33,7 @@ namespace SPDocumentWcfService
         /// <param name="ListName">列表库名称</param>
         /// <param name="SearchList">查询条件（key:字段名/value:字段内容）</param>
         /// <returns></returns>
-        public SPListItems GetSPListItemsBySearch(SPSetting setting, string ListName, Dictionary<string, string> SearchList)
+        public SPListItems GetSPListItemsBySearch(SPSetting setting, string ListName, SPListSearchs SearchList)
         {
             SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             SPListItems items = docHelper.GetSPListItems(ListName, SearchList);
@@ -48,7 +48,7 @@ namespace SPDocumentWcfService
         /// <param name="SearchList">查询条件（key:字段名/value:字段内容）</param>
         /// <param name="OrderList">需要排序的字段组合（key:字段名/value:排序顺序:True=Asc|False=Desc）</param>
         /// <returns></returns>
-        public SPListItems GetSPListItemsBySearchOrder(SPSetting setting, string ListName, Dictionary<string, string> SearchList, Dictionary<string, bool> OrderList)
+        public SPListItems GetSPListItemsBySearchOrder(SPSetting setting, string ListName, SPListSearchs SearchList, Dictionary<string, SPListOrderByEnum> OrderList)
         {
             SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
             SPListItems items = docHelper.GetSPListItems(ListName, SearchList, OrderList);
@@ -480,6 +480,21 @@ namespace SPDocumentWcfService
             return docHelper.GetImageFolderFile(strFileName, strListName, iFolderId);
         }
 
+        /// <summary>
+        /// 按查询条件和排序规则查询图片库图片集合
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="strListName">图片库名称</param>
+        /// <param name="SearchList">查询条件</param>
+        /// <param name="OrderList">排序条件</param>
+        /// <returns></returns>
+        public SPImages GetImageFilesBySearchOrder(SPSetting setting, string strListName, SPListSearchs SearchList, Dictionary<string, SPListOrderByEnum> OrderList)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            return docHelper.GetImageFiles(strListName, SearchList, OrderList);
+        }
+
+
         #endregion
 
         #region 删除图片文件
@@ -503,5 +518,12 @@ namespace SPDocumentWcfService
 
 
         #endregion
+
+
+        public SPListSearch GetFileTypeTest(string value)
+        {
+            return new SPDocumentWcfService.SPListSearch();
+        }
+
     }
 }

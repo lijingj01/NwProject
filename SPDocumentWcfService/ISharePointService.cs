@@ -163,11 +163,11 @@ namespace SPDocumentWcfService
 
         [OperationContract]
         [ServiceKnownType(typeof(SPListItems))]
-        SPListItems GetSPListItemsBySearch(SPSetting setting, string ListName, Dictionary<string, string> SearchList);
+        SPListItems GetSPListItemsBySearch(SPSetting setting, string ListName, SPListSearchs SearchList);
 
         [OperationContract]
         [ServiceKnownType(typeof(SPListItems))]
-        SPListItems GetSPListItemsBySearchOrder(SPSetting setting, string ListName, Dictionary<string, string> SearchList, Dictionary<string, bool> OrderList);
+        SPListItems GetSPListItemsBySearchOrder(SPSetting setting, string ListName, SPListSearchs SearchList, Dictionary<string, SPListOrderByEnum> OrderList);
 
         [OperationContract]
         void UpdateSPListItem(SPSetting setting, string strListName, int iItemId, Dictionary<string, string> updateValue);
@@ -201,6 +201,10 @@ namespace SPDocumentWcfService
         SPImages GetImageFolderFilesByName(SPSetting setting, string strListName, string strFolderName);
 
         [OperationContract]
+        [ServiceKnownType(typeof(SPListItems))]
+        SPImages GetImageFilesBySearchOrder(SPSetting setting, string strListName, SPListSearchs SearchList, Dictionary<string, SPListOrderByEnum> OrderList);
+
+        [OperationContract]
         SPImage GetImageFolderFile(SPSetting setting, string strFileName, string strListName, int iFolderId);
 
         #endregion
@@ -211,5 +215,9 @@ namespace SPDocumentWcfService
         #endregion
 
         #endregion
+
+        [OperationContract]
+        [ServiceKnownType(typeof(Enum))]
+        SPListSearch GetFileTypeTest(string value);
     }
 }
