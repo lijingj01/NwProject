@@ -519,11 +519,29 @@ namespace SPDocumentWcfService
 
         #endregion
 
+        #region 列表文档库
+        /// <summary>
+        /// 获取指定列表或文档库的信息
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="ListName">列表库名称</param>
+        /// <returns></returns>
+        public SPList GetSPListInfo(SPSetting setting, string ListName)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            return docHelper.GetListInfo(ListName);
+        }
+
+        #endregion
 
         public SPListSearch GetFileTypeTest(string value)
         {
             return new SPDocumentWcfService.SPListSearch();
         }
 
+        public SPListFields GetTest1(SPSetting setting)
+        {
+            return new SPDocumentWcfService.SPListFields();
+        }
     }
 }

@@ -19,18 +19,31 @@ namespace SPDocumentWcfService
     /// <summary>
     /// SharePoint实体对象基础类
     /// </summary>
-    [DataContract(IsReference = true)]
+    [DataContract]
     public class SPBaseClass
     {
         #region SharePoint相关参数配置
+        private string _spsite = string.Empty;
         /// <summary>
         /// SharePoint主站地址
         /// </summary>
         [DataMember]
         public string SPSite
         {
-            get;
-            set;
+            get
+            {
+                return _spsite;
+            }
+            set
+            {
+                _spsite = value;
+
+                #region 设置参数
+                string[] strBaseSites = SPSite.Split('/');
+                string strBaseSite = string.Format("{0}//{1}{2}", strBaseSites[0], strBaseSites[1], strBaseSites[2]);
+                SPBaseSite = strBaseSite;
+                #endregion
+            }
         }
         /// <summary>
         /// SharePoint站点地址
@@ -46,21 +59,11 @@ namespace SPDocumentWcfService
         /// <summary>
         /// SharePoint基础主站
         /// </summary>
+        [DataMember]
         public string SPBaseSite
         {
-            get
-            {
-                if (!string.IsNullOrEmpty(SPSite))
-                {
-                    string[] strBaseSites = SPSite.Split('/');
-                    string strBaseSite = string.Format("{0}//{1}{2}", strBaseSites[0], strBaseSites[1], strBaseSites[2]);
-                    return strBaseSite;
-                }
-                else
-                {
-                    return SPSite;
-                }
-            }
+            get;
+            set;
         }
 
         /// <summary>
@@ -116,8 +119,9 @@ namespace SPDocumentWcfService
     /// 对应的SharePoint列表对象
     /// </summary>
     [DataContract]
-    public class SPCostList : SPBaseClass
+    public class SPList :SPBaseClass
     {
+
         #region 属性
         /// <summary>
         /// 
@@ -126,7 +130,7 @@ namespace SPDocumentWcfService
         public string DocTemplateUrl
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -135,7 +139,7 @@ namespace SPDocumentWcfService
         public string DefaultViewUrl
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -144,7 +148,7 @@ namespace SPDocumentWcfService
         public string MobileDefaultViewUrl
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -153,7 +157,7 @@ namespace SPDocumentWcfService
         public Guid ID
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -162,7 +166,7 @@ namespace SPDocumentWcfService
         public string Title
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -171,7 +175,7 @@ namespace SPDocumentWcfService
         public string Description
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -180,7 +184,7 @@ namespace SPDocumentWcfService
         public string ImageUrl
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -189,7 +193,7 @@ namespace SPDocumentWcfService
         public Guid Name
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -198,7 +202,7 @@ namespace SPDocumentWcfService
         public int BaseType
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -207,7 +211,7 @@ namespace SPDocumentWcfService
         public Guid FeatureId
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -216,7 +220,7 @@ namespace SPDocumentWcfService
         public DateTime Created
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -225,7 +229,7 @@ namespace SPDocumentWcfService
         public DateTime Modified
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -234,7 +238,7 @@ namespace SPDocumentWcfService
         public string Version
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -243,7 +247,7 @@ namespace SPDocumentWcfService
         public string RootFolder
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -252,7 +256,7 @@ namespace SPDocumentWcfService
         public string WebFullUrl
         {
             get;
-            internal set;
+            set;
         }
         /// <summary>
         /// 
@@ -261,7 +265,7 @@ namespace SPDocumentWcfService
         public Guid WebId
         {
             get;
-            internal set;
+            set;
         }
 
 
@@ -280,21 +284,18 @@ namespace SPDocumentWcfService
         [DataMember]
         public string ListFullUrl
         {
-            get
-            {
-                return string.Format("{0}{1}", SPSiteUrl, RootFolder);
-            }
+            get;set;
         }
         #endregion
 
         #region 构造函数
 
-        public SPCostList()
+        public SPList()
         {
 
         }
 
-        internal SPCostList(XmlNode ListNode)
+        internal SPList(XmlNode ListNode)
             : this()
         {
             //获取列表库的结构
@@ -313,12 +314,15 @@ namespace SPDocumentWcfService
             WebFullUrl = ListNode.Attributes["WebFullUrl"].Value;
             WebId = new Guid(ListNode.Attributes["WebId"].Value);
 
-            Fields = new SPCostListFields();
+            Fields = new SPListFields();
             foreach (XmlNode node in ListNode.FirstChild.ChildNodes)
             {
-                SPCostListField field = new SPCostListField(node);
+                SPListField field = new SPListField(node);
                 Fields.Add(field);
             }
+
+            ListFullUrl = string.Format("{0}{1}", SPSiteUrl, RootFolder);
+            ListUrl = RootFolder.Substring(RootFolder.LastIndexOf("/") + 1);
         }
 
         #endregion
@@ -328,7 +332,7 @@ namespace SPDocumentWcfService
         /// 字段集合
         /// </summary>
         [DataMember]
-        public SPCostListFields Fields
+        public SPListFields Fields
         {
             get;
             set;
@@ -343,10 +347,7 @@ namespace SPDocumentWcfService
         [DataMember]
         public string ListUrl
         {
-            get
-            {
-                return RootFolder.Substring(RootFolder.LastIndexOf("/") + 1);
-            }
+            get;set;
         }
 
         #endregion
@@ -356,7 +357,7 @@ namespace SPDocumentWcfService
     /// 对应的SharePoint列表对象的字段对象
     /// </summary>
     [DataContract]
-    public class SPCostListField : SPBaseClass
+    public class SPListField  
     {
         #region 属性
         /// <summary>
@@ -408,7 +409,7 @@ namespace SPDocumentWcfService
 
         #region 构造函数
 
-        public SPCostListField()
+        public SPListField()
         {
 
         }
@@ -416,7 +417,7 @@ namespace SPDocumentWcfService
         /// 根据Xml创建字段数据
         /// </summary>
         /// <param name="node"></param>
-        internal SPCostListField(XmlNode node)
+        public SPListField(XmlNode node)
             : this()
         {
             ID = new Guid(node.Attributes["ID"].Value);
@@ -432,17 +433,19 @@ namespace SPDocumentWcfService
     /// <summary>
     /// 对应的SharePoint列表对象的字段对象集合
     /// </summary>
-    [DataContract]
-    public class SPCostListFields : List<SPCostListField>
+    [Serializable]
+    [CollectionDataContract]
+    [KnownType(typeof(SPListField))]
+    public class SPListFields : List<SPListField>
     {
         /// <summary>
         /// 通过显示名称来获取对于的字段数据
         /// </summary>
         /// <param name="strDisplayName">显示名称</param>
         /// <returns></returns>
-        public SPCostListField GetField(string strDisplayName)
+        public SPListField GetField(string strDisplayName)
         {
-            foreach (SPCostListField field in this)
+            foreach (SPListField field in this)
             {
                 if (field.DisplayName == strDisplayName)
                 {
@@ -583,7 +586,7 @@ namespace SPDocumentWcfService
 
         #region 命名空间内方法
 
-        internal SPCostDocument(XmlNode ndListItems, SPCostList list, SPCostFolder folder)
+        internal SPCostDocument(XmlNode ndListItems, SPList list, SPCostFolder folder)
             : this()
         {
             this.SPList = list;
@@ -605,7 +608,7 @@ namespace SPDocumentWcfService
         /// </summary>
         /// <param name="node"></param>
         /// <param name="pageField">特殊的页数字段标志</param>
-        internal void XmlLoad(XmlNode node, SPCostListField pageField)
+        internal void XmlLoad(XmlNode node, SPListField pageField)
         {
             string strPageFieldName = "ows_" + pageField.Name;
             int iPageNum = 0;
@@ -625,7 +628,7 @@ namespace SPDocumentWcfService
         /// <param name="node"></param>
         /// <param name="pageField">特殊的页数字段标志</param>
         /// <param name="typeField">特殊的附件分类标志</param>
-        internal void XmlLoad(XmlNode node, SPCostListField pageField, SPCostListField typeField)
+        internal void XmlLoad(XmlNode node, SPListField pageField, SPListField typeField)
         {
             string strPageFieldName = "ows_" + pageField.Name;
             string strPageNum = node.Attributes[strPageFieldName].Value;
@@ -674,7 +677,7 @@ namespace SPDocumentWcfService
 
             #region 其它属性加入
 
-            foreach (SPCostListField field in SPList.Fields)
+            foreach (SPListField field in SPList.Fields)
             {
                 string strFieldName = "ows_" + field.Name;
                 if (node.Attributes[strFieldName] != null)
@@ -832,7 +835,7 @@ namespace SPDocumentWcfService
         /// <summary>
         /// 文档库信息
         /// </summary>
-        internal SPCostList SPList
+        internal SPList SPList
         {
             get;
             set;
@@ -906,7 +909,7 @@ namespace SPDocumentWcfService
         /// <summary>
         /// 文档库信息
         /// </summary>
-        internal SPCostList SPList
+        internal SPList SPList
         {
             get;
             set;
@@ -945,7 +948,7 @@ namespace SPDocumentWcfService
             }
         }
 
-        internal SPCostDocuments(XmlNode ndListItems, SPCostList listItem)
+        internal SPCostDocuments(XmlNode ndListItems, SPList listItem)
             : this()
         {
             XmlNamespaceManager ns = new XmlNamespaceManager(ndListItems.OwnerDocument.NameTable);
@@ -954,10 +957,10 @@ namespace SPDocumentWcfService
             XmlNodeList nodes = ndListItems.SelectNodes(@"//z:row", ns);
 
             //取得页数的内部编码
-            SPCostListField pageField = listItem.Fields.GetField(PageNumDisplayName);
+            SPListField pageField = listItem.Fields.GetField(PageNumDisplayName);
 
             //判断有没有附件类型字段
-            SPCostListField typeField = listItem.Fields.GetField(DocumentTypeDisplayName);
+            SPListField typeField = listItem.Fields.GetField(DocumentTypeDisplayName);
             this.SPList = listItem;
             this.SPFolder = null;
             #region 读取列表数据
@@ -989,7 +992,7 @@ namespace SPDocumentWcfService
         }
 
 
-        internal SPCostDocuments(XmlNode ndListItems, SPCostList listItem, SPCostFolder folder)
+        internal SPCostDocuments(XmlNode ndListItems, SPList listItem, SPCostFolder folder)
             : this()
         {
             XmlNamespaceManager ns = new XmlNamespaceManager(ndListItems.OwnerDocument.NameTable);
@@ -998,10 +1001,10 @@ namespace SPDocumentWcfService
             XmlNodeList nodes = ndListItems.SelectNodes(@"//z:row", ns);
 
             //取得页数的内部编码
-            SPCostListField pageField = listItem.Fields.GetField(PageNumDisplayName);
+            SPListField pageField = listItem.Fields.GetField(PageNumDisplayName);
 
             //判断有没有附件类型字段
-            SPCostListField typeField = listItem.Fields.GetField(DocumentTypeDisplayName);
+            SPListField typeField = listItem.Fields.GetField(DocumentTypeDisplayName);
             this.SPList = listItem;
             this.SPFolder = folder;
             #region 读取列表数据
@@ -1313,7 +1316,7 @@ namespace SPDocumentWcfService
         /// <summary>
         /// 列表库信息
         /// </summary>
-        internal SPCostList SPList
+        internal SPList SPList
         {
             get;
             set;
@@ -1349,7 +1352,7 @@ namespace SPDocumentWcfService
         #endregion
 
         #region 内部数据构造
-        internal void XmlLoad(XmlNode node, SPCostList listItem)
+        internal void XmlLoad(XmlNode node, SPList listItem)
         {
             this.SPList = listItem;
             CreateDoc(node);
@@ -1374,7 +1377,7 @@ namespace SPDocumentWcfService
             UniqueId = new Guid(strUID.Substring(strUID.IndexOf("#") + 1));
             Modified = Convert.ToDateTime(strModified);
 
-            foreach (SPCostListField field in SPList.Fields)
+            foreach (SPListField field in SPList.Fields)
             {
                 string strFieldName = "ows_" + field.Name;
                 if (node.Attributes[strFieldName] != null)
@@ -1782,7 +1785,7 @@ namespace SPDocumentWcfService
         /// <summary>
         /// 图片库信息
         /// </summary>
-        internal SPCostList SPList
+        internal SPList SPList
         {
             get;
             set;
@@ -1884,7 +1887,7 @@ namespace SPDocumentWcfService
             this.FileSmallName = this.FileLeafRef.Replace("." + this.DocIcon, "");
         }
 
-        public SPImage(XmlNode node, SPCostList list) : this()
+        public SPImage(XmlNode node, SPList list) : this()
         {
             this.SPList = list;
             string strImageName = node.Attributes[ImageNameKey].Value;
@@ -1922,7 +1925,7 @@ namespace SPDocumentWcfService
             }
 
             #region 扩展属性
-            foreach (SPCostListField field in SPList.Fields)
+            foreach (SPListField field in SPList.Fields)
             {
                 string strFieldName = "ows_" + field.Name;
                 if (node.Attributes[strFieldName] != null)

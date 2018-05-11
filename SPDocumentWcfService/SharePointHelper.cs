@@ -585,7 +585,7 @@ namespace SPDocumentWcfService
                 };
                 XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery,
                         null, null, ndQueryOptions, null);
-                SPCostList list = GetListInfo(ListName);
+                SPList list = GetListInfo(ListName);
                 //document.SPList = list;
                 SPCostDocument document = new SPCostDocument(ndListItems, list, null);
                 #endregion
@@ -725,7 +725,7 @@ namespace SPDocumentWcfService
             {
                 //int iFolderId = 0;
                 //先获取列表信息
-                SPCostList list = GetListInfo(ListName);
+                SPList list = GetListInfo(ListName);
                 //先判断文件夹是否已经创建，已经创建的文件夹不需要再次创建
                 SPCostFolder folder = GetFolderInfo(ListName, list.RootFolder, FolderName);
                 if (folder.ID == 0)
@@ -809,7 +809,7 @@ namespace SPDocumentWcfService
                     Url = FullWebUrl + ListUrl,
                     Credentials = SPCredential
                 };
-                SPCostList list = GetListInfo(strListName);
+                SPList list = GetListInfo(strListName);
 
                 SPCostFolder folder = GetFolderInfo(strListName, list.ListUrl, strOldFolderName);
 
@@ -880,7 +880,7 @@ namespace SPDocumentWcfService
                 Url = FullWebUrl + ListUrl,
                 Credentials = SPCredential
             };
-            SPCostList list = GetListInfo(strListName);
+            SPList list = GetListInfo(strListName);
 
             SPCostFolder folder = GetFolderInfo(strListName, iFolderId);
 
@@ -957,7 +957,7 @@ namespace SPDocumentWcfService
         public SPCostFolder GetFolderInfo(string ListName, string FolderName)
         {
             //先获取列表信息
-            SPCostList list = GetListInfo(ListName);
+            SPList list = GetListInfo(ListName);
             //查询文件夹
             SPCostFolder folder = GetFolderInfo(ListName, list.RootFolder, FolderName);
             folder.ListUrl = list.ListUrl;
@@ -982,7 +982,7 @@ namespace SPDocumentWcfService
                 string strFolderName = folder.FileLeafRef;
                 string strParentUrl = "/" + folder.ParentUrl;
                 SPCostFolder spfolder = GetFolderInfo(ListName, strParentUrl, strFolderName);
-                SPCostList list = GetListInfo(ListName);
+                SPList list = GetListInfo(ListName);
                 spfolder.ListUrl = list.ListUrl;
                 return spfolder;
             }
@@ -991,7 +991,7 @@ namespace SPDocumentWcfService
                 #region 旧数据处理方法
 
                 //先获取列表信息
-                SPCostList list = GetListInfo(ListName);
+                SPList list = GetListInfo(ListName);
                 //查询文件夹
                 SPCostFolder spfolder = GetFolderInfo(ListName, list.RootFolder, FolderName);
                 spfolder.ListUrl = list.ListUrl;
@@ -1089,7 +1089,7 @@ namespace SPDocumentWcfService
                 string strFolderName = folder.FileLeafRef;
                 string strParentUrl = "/" + folder.ParentUrl;
                 SPCostFolder spfolder = GetFolderInfo(ListName, strParentUrl, strFolderName);
-                SPCostList list = GetListInfo(ListName);
+                SPList list = GetListInfo(ListName);
                 spfolder.ListUrl = list.ListUrl;
                 return spfolder;
             }
@@ -1122,7 +1122,7 @@ namespace SPDocumentWcfService
                 //listHelper.get
 
                 SPCostFolder spfolder = new SPCostFolder(ndListItems);
-                SPCostList list = GetListInfo(ListName);
+                SPList list = GetListInfo(ListName);
                 spfolder.ListUrl = list.ListUrl;
                 spfolder.ListName = ListName;
 
@@ -1299,7 +1299,7 @@ namespace SPDocumentWcfService
                 XmlNode ndListItems = listHelper.GetListItems(strListName, null, ndQuery,
                         null, null, ndQueryOptions, null);
 
-                SPCostList list = GetListInfo(strListName);
+                SPList list = GetListInfo(strListName);
                 SPCostDocument document = new SPCostDocument(ndListItems, list, folder);
 
                 return document;
@@ -1354,7 +1354,7 @@ namespace SPDocumentWcfService
                 //查询对应的文件
                 XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery, null, null, ndQueryOptions, null);
 
-                SPCostList listItem = GetListInfo(ListName);
+                SPList listItem = GetListInfo(ListName);
 
                 SPCostDocuments items = new SPCostDocuments(ndListItems, listItem, folder);
 
@@ -1411,7 +1411,7 @@ namespace SPDocumentWcfService
                 //查询对应的文件
                 XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery, null, null, ndQueryOptions, null);
 
-                SPCostList listItem = GetListInfo(ListName);
+                SPList listItem = GetListInfo(ListName);
 
                 SPCostDocuments items = new SPCostDocuments(ndListItems, listItem, folder);
 
@@ -1463,7 +1463,7 @@ namespace SPDocumentWcfService
                 //查询对应的文件
                 XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery, null, null, ndQueryOptions, null);
 
-                SPCostList listItem = GetListInfo(ListName);
+                SPList listItem = GetListInfo(ListName);
 
                 SPCostDocuments items = new SPCostDocuments(ndListItems, listItem);
 
@@ -1484,7 +1484,7 @@ namespace SPDocumentWcfService
         /// </summary>
         /// <param name="ListName">文档库名称</param>
         /// <returns></returns>
-        public SPCostList GetListInfo(string ListName)
+        public SPList GetListInfo(string ListName)
         {
             try
             {
@@ -1497,7 +1497,7 @@ namespace SPDocumentWcfService
                 };
                 XmlNode node = listHelper.GetList(ListName);
                 //获取列表库的结构
-                SPCostList list = new SPCostList(node);
+                SPList list = new SPList(node);
                 list.SPSite = SPSite;
                 list.SPWeb = SPWeb;
 
@@ -1971,14 +1971,14 @@ namespace SPDocumentWcfService
 
         public SPImage GetImageFile(string ListName, string strFileName)
         {
-            SPCostList list = GetListInfo(ListName);
+            SPList list = GetListInfo(ListName);
 
             StringBuilder strSerachXml = new StringBuilder();
             //图片库图片默认名称
             string strTitleName = "名称";
             #region 组合查询条件  
             strSerachXml.Append("<Where>");
-            SPCostListField field = list.Fields.GetField(strTitleName);
+            SPListField field = list.Fields.GetField(strTitleName);
             string strFiledName = field.Name;
             strSerachXml.AppendFormat("<Eq><FieldRef Name='{0}'/><Value Type='{2}'>{1}</Value></Eq>", strFiledName, strFileName, field.Type);
             strSerachXml.Append("</Where>");
@@ -2050,7 +2050,7 @@ namespace SPDocumentWcfService
         /// <returns></returns>
         public SPImages GetImageFiles(string ListName, SPListSearchs SearchList, Dictionary<string, SPListOrderByEnum> OrderList)
         {
-            SPCostList list = GetListInfo(ListName);
+            SPList list = GetListInfo(ListName);
 
             StringBuilder strSerachXml = new StringBuilder();
 
@@ -2062,7 +2062,7 @@ namespace SPDocumentWcfService
             foreach (SPListSearch ls in SearchList)
             {
                 iIndex++;
-                SPCostListField field = list.Fields.GetField(ls.SearchFieldName);
+                SPListField field = list.Fields.GetField(ls.SearchFieldName);
                 string strFiledName = field.Name;
                 
                 string strFieldCMAL = CAML.FieldRef(strFiledName);
@@ -2169,7 +2169,7 @@ namespace SPDocumentWcfService
                 List<string> strOrderBys = new List<string>();
                 foreach (KeyValuePair<string, SPListOrderByEnum> kv in OrderList)
                 {
-                    SPCostListField field = list.Fields.GetField(kv.Key);
+                    SPListField field = list.Fields.GetField(kv.Key);
                     string strFiledName = field.Name;
                     strOrderBys.Add(CAML.FieldRef(strFiledName, kv.Value == SPListOrderByEnum.Desc ? CAML.SortType.Descending : CAML.SortType.Ascending));
                 }
@@ -2461,7 +2461,7 @@ namespace SPDocumentWcfService
                 Url = FullWebUrl + ListUrl,
                 Credentials = SPCredential
             };
-            SPCostList list = GetListInfo(strListName);
+            SPList list = GetListInfo(strListName);
 
             StringBuilder strBatch = new StringBuilder();
             strBatch.AppendFormat("<Method ID='{0}' Cmd='Update'>", iItemId);
@@ -2469,7 +2469,7 @@ namespace SPDocumentWcfService
             #region 更新字段
             foreach (KeyValuePair<string, string> kv in updateValue)
             {
-                SPCostListField field = list.Fields.GetField(kv.Key);
+                SPListField field = list.Fields.GetField(kv.Key);
                 string strFiledName = field.Name;
                 strBatch.AppendFormat("<Field Name='{0}'>{1}</Field>", strFiledName, kv.Value);
             }
@@ -2499,7 +2499,7 @@ namespace SPDocumentWcfService
             try
             {
 
-                SPCostList list = GetListInfo(ListName);
+                SPList list = GetListInfo(ListName);
 
                 return GetSPListItems(ListName, list, string.Empty);
             }
@@ -2540,7 +2540,7 @@ namespace SPDocumentWcfService
             try
             {
 
-                SPCostList list = GetListInfo(ListName);
+                SPList list = GetListInfo(ListName);
 
                 StringBuilder strSerachXml = new StringBuilder();
                 #region 组合查询条件
@@ -2568,7 +2568,7 @@ namespace SPDocumentWcfService
                 foreach (SPListSearch ls in SearchList)
                 {
                     iIndex++;
-                    SPCostListField field = list.Fields.GetField(ls.SearchFieldName);
+                    SPListField field = list.Fields.GetField(ls.SearchFieldName);
                     string strFiledName = field.Name;
 
                     string strFieldCMAL = CAML.FieldRef(strFiledName);
@@ -2676,7 +2676,7 @@ namespace SPDocumentWcfService
                     //strSerachXml.Append("<OrderBy>");
                     foreach (KeyValuePair<string, SPListOrderByEnum> kv in OrderList)
                     {
-                        SPCostListField field = list.Fields.GetField(kv.Key);
+                        SPListField field = list.Fields.GetField(kv.Key);
                         string strFiledName = field.Name;
                         //strSerachXml.AppendFormat("<FieldRef Name='{0}' Ascending='{1}'/>", strFiledName, kv.Value.ToString().ToUpper());
                         strOrderBys.Add(CAML.FieldRef(strFiledName, kv.Value == SPListOrderByEnum.Desc ? CAML.SortType.Descending : CAML.SortType.Ascending));
@@ -2694,7 +2694,7 @@ namespace SPDocumentWcfService
             }
         }
 
-        private SPListItems GetSPListItems(string ListName, SPCostList list, string strSerachXml)
+        private SPListItems GetSPListItems(string ListName, SPList list, string strSerachXml)
         {
             //获取文件夹的编号
             SPListWebService.Lists listHelper = new SPListWebService.Lists()

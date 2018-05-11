@@ -216,8 +216,16 @@ namespace SPDocumentWcfService
 
         #endregion
 
+        #region 列表文档库数据提取
         [OperationContract]
-        [ServiceKnownType(typeof(Enum))]
-        SPListSearch GetFileTypeTest(string value);
+        SPList GetSPListInfo(SPSetting setting, string ListName);
+
+        //[OperationContract]
+        //SPListFields GetTest1(SPSetting setting);
+        #endregion
+
+        //[OperationContract]
+        //[ServiceKnownType(typeof(Enum))]
+        //SPListSearch GetFileTypeTest(string value);
     }
 }
