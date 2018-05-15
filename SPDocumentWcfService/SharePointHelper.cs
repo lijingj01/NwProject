@@ -746,23 +746,29 @@ namespace SPDocumentWcfService
                         #region 文件夹记录起来
                         try
                         {
-                            Data.Folders dbfolder = new Data.Folders()
-                            {
-                                SPSite = SPSite,
-                                SPWeb = SPWeb,
-                                ListName = ListName,
-                                FolderId = folder.ID,
-                                FolderName = folder.FileLeafRef,
-                                FolderUniqueId = folder.UniqueId,
-                                FileLeafRef = folder.FileLeafRef,
-                                FileRef = folder.FileRef,
-                                ParentUrl = folder.ParentUrl,
-                                Created = DateTime.Now,
-                                CreateUser = UserCode
-                            };
                             Data.FileLogDataClassesDataContext fileDBContext = new Data.FileLogDataClassesDataContext();
-                            fileDBContext.Folders.InsertOnSubmit(dbfolder);
-                            fileDBContext.SubmitChanges();
+                            //避免重复记录
+                            Data.Folders dbfolder = fileDBContext.Folders.FirstOrDefault<Data.Folders>(c => c.SPWeb == this.SPWeb & c.ListName == ListName & c.FolderId == folder.ID);
+                            if (dbfolder == null)
+                            {
+                                dbfolder = new Data.Folders()
+                                {
+                                    SPSite = SPSite,
+                                    SPWeb = SPWeb,
+                                    ListName = ListName,
+                                    FolderId = folder.ID,
+                                    FolderName = folder.FileLeafRef,
+                                    FolderUniqueId = folder.UniqueId,
+                                    FileLeafRef = folder.FileLeafRef,
+                                    FileRef = folder.FileRef,
+                                    ParentUrl = folder.ParentUrl,
+                                    Created = DateTime.Now,
+                                    CreateUser = UserCode
+                                };
+
+                                fileDBContext.Folders.InsertOnSubmit(dbfolder);
+                                fileDBContext.SubmitChanges();
+                            }
                         }
                         catch (Exception ex) { }
                         #endregion
