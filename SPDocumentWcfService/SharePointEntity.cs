@@ -663,7 +663,12 @@ namespace SPDocumentWcfService
             string strFolderUrl = node.Attributes[FolderUrlKey].Value;
             string strID = node.Attributes[FolderID].Value;
             string strUID = node.Attributes[FolderUniqueId].Value;
-            string strIcon = node.Attributes[FolderDocIcon].Value;
+            string strIcon = string.Empty;
+            //特殊的无类型附件读取会出现异常
+            if (node.Attributes[FolderDocIcon] != null)
+            {
+                strIcon = node.Attributes[FolderDocIcon].Value;
+            }
             string strModified = node.Attributes[FolderModified].Value;
 
             ID = Convert.ToInt32(strID);
