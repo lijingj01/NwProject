@@ -875,8 +875,14 @@ namespace SPDocumentWcfService
         {
             get
             {
-                string strFileName = FileLeafRef.Substring(0, FileLeafRef.IndexOf('.'));
-                return strFileName;
+                if (FileLeafRef.IndexOf('.') != -1)
+                {
+                    string strFileName = FileLeafRef.Substring(0, FileLeafRef.IndexOf('.'));
+                    return strFileName;
+                }else
+                {
+                    return FileLeafRef;
+                }
             }
         }
         #endregion
