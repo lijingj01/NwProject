@@ -1882,9 +1882,9 @@ namespace SPDocumentWcfService
                 EncodedAbsUrl = FileRef;
             }
 
-            #region 定义图片的缩微图地址
+            #region 定义图片的缩微图地址,缩微图都是jpg格式
             string strSmallFolder = "_w";
-            string strNewFileName = strSmallFolder + "/" + FileLeafRef.Replace("." + DocIcon, "_" + DocIcon) + "." + DocIcon;
+            string strNewFileName = strSmallFolder + "/" + FileLeafRef.Replace("." + DocIcon, "_" + DocIcon) + ".jpg";
             ImageSmallUrl = EncodedAbsUrl.Replace(FileLeafRef, strNewFileName);
 
             #endregion
@@ -1958,9 +1958,9 @@ namespace SPDocumentWcfService
             }
             #endregion
 
-            #region 定义图片的缩微图地址
+            #region 定义图片的缩微图地址，缩微图都是jpg格式
             string strSmallFolder = "_w";
-            string strNewFileName = strSmallFolder + "/" + FileLeafRef.Replace("." + DocIcon, "_" + DocIcon) + "." + DocIcon;
+            string strNewFileName = strSmallFolder + "/" + FileLeafRef.Replace("." + DocIcon, "_" + DocIcon) + ".jpg";
             ImageSmallUrl = EncodedAbsUrl.Replace(FileLeafRef, strNewFileName);
 
             #endregion

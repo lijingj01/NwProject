@@ -343,7 +343,7 @@ namespace SPDocumentWcfService
             string strFileIco = strFileName.Substring(strFileName.IndexOf('.') + 1);
 
             string s = strFileName.Replace("&", "").Replace("\"", "").Replace("?", "").Replace("<", "").Replace(">", "").Replace("#", "").Replace("{", "").Replace("}", "").Replace("%", "")
-                  .Replace("~", "").Replace("/", "").Replace("\\", "").Replace("（", "").Replace("）", "").Replace("：", "").Replace("..", ".").Replace("•", ".").Replace(" ", "");
+                  .Replace("~", "").Replace("/", "").Replace("\\", "").Replace("（", "").Replace("）", "").Replace("：", "").Replace("..", ".").Replace("•", ".").Replace(" ", "").Replace("+","＋");
             if (s.Length > 100)
                 return s.Substring(0, 100) + "." + strFileName;
             else
