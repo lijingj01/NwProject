@@ -1064,7 +1064,8 @@ namespace SPDocumentWcfService
             XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery,
                 null, null, ndQueryOptions, null);
 
-            SPCostFolder folder = new SPCostFolder(ndListItems, strSmallFolderName);
+            SPCostFolder folder = new SPCostFolder();
+            folder.CreateFolder(ndListItems, strSmallFolderName);
             folder.ListName = ListName;
             folder.SPSite = SPSite;
             folder.SPWeb = SPWeb;
@@ -1127,7 +1128,8 @@ namespace SPDocumentWcfService
 
                 //listHelper.get
 
-                SPCostFolder spfolder = new SPCostFolder(ndListItems);
+                SPCostFolder spfolder = new SPCostFolder();
+                spfolder.CreateFolder(ndListItems);
                 SPList list = GetListInfo(ListName);
                 spfolder.ListUrl = list.ListUrl;
                 spfolder.ListName = ListName;
@@ -1169,11 +1171,51 @@ namespace SPDocumentWcfService
 
             ndQueryOptions.InnerXml = strQueryOptionsXml.ToString();
 
+            ndQuery.InnerXml = "<Where><Eq><FieldRef Name='ContentType'/><Value Type='Text'>文件夹</Value></Eq></Where>";
+
             XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery,
                 null, null, ndQueryOptions, null);
 
-            SPCostFolders folders = new SPCostFolders(ndListItems);
+            SPCostFolders folders = new SPCostFolders();
+            folders.CreateFolders(ndListItems);
+            return folders;
+        }
 
+        public SPCostFolders GetListFolderChilds(string ListName, string FolderListUrl)
+        {
+            //获取文件夹的编号
+            SPListWebService.Lists listHelper = new SPListWebService.Lists()
+            {
+                Url = FullWebUrl + ListUrl,
+                Credentials = SPCredential
+            };
+            XmlDocument xmlDoc = new System.Xml.XmlDocument();
+            XmlNode ndQuery = xmlDoc.CreateNode(XmlNodeType.Element, "Query", "");
+            XmlNode ndViewFields = xmlDoc.CreateNode(XmlNodeType.Element, "ViewFields", "");
+            XmlNode ndQueryOptions = xmlDoc.CreateNode(XmlNodeType.Element, "QueryOptions", "");
+
+            string strParentFolderName = FolderListUrl;
+            if (strParentFolderName.Last() != '/')
+            {
+                strParentFolderName += @"/";
+            }
+
+            StringBuilder strQueryOptionsXml = new StringBuilder();
+            strQueryOptionsXml.Append("<QueryOptions>");
+            strQueryOptionsXml.Append("<IncludeMandatoryColumns>FALSE</IncludeMandatoryColumns>");
+            strQueryOptionsXml.Append("<DateInUtc>TRUE</DateInUtc>");
+            strQueryOptionsXml.Append("<Folder>" + strParentFolderName + "</Folder>");
+            strQueryOptionsXml.Append("</QueryOptions>");
+
+            ndQueryOptions.InnerXml = strQueryOptionsXml.ToString();
+
+            ndQuery.InnerXml = "<Where><Eq><FieldRef Name='ContentType'/><Value Type='Text'>文件夹</Value></Eq></Where>";
+
+            XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery,
+                null, null, ndQueryOptions, null);
+
+            SPCostFolders folders = new SPCostFolders();
+            folders.CreateFolders(ndListItems);
             return folders;
         }
 
@@ -1201,7 +1243,8 @@ namespace SPDocumentWcfService
             XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery,
                 null, null, ndQueryOptions, null);
 
-            SPCostFolder folder = new SPCostFolder(ndListItems);
+            SPCostFolder folder = new SPCostFolder();
+            folder.CreateFolder(ndListItems);
             folder.ListName = ListName;
             if (folder.ID == 0)
             {
@@ -1213,7 +1256,58 @@ namespace SPDocumentWcfService
             }
         }
 
+        /// <summary>
+        /// 获取文档库的所有文件夹，包括层级
+        /// </summary>
+        /// <param name="ListName"></param>
+        /// <returns></returns>
+        public SPCostFolders GetListFullFolders(string ListName)
+        {
+            try
+            {
+                SPList list = GetListInfo(ListName);
+                string strListUrl = list.ListUrl;
+                //得到根目录
+                SPCostFolders folders = GetListFolders(ListName);
+                foreach(SPCostFolder folder in folders)
+                {
+                    SPCostFolders childFoldes = LoadFolderChilds(ListName, strListUrl, folder);
+                    folder.Childs = childFoldes;
+                }
 
+                return folders;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+        private SPCostFolders LoadFolderChilds(string ListName, string strListUrl, SPCostFolder folder)
+        {
+            string[] strParentUrls = folder.FileRef.Split('/');
+            string strParentFolder = string.Empty;
+            int iStartIndex = -1;
+            for (int i = 0; i < strParentUrls.Length; i++)
+            {
+                if (strParentUrls[i] == strListUrl)
+                {
+                    iStartIndex = i;
+                }
+                if (iStartIndex >= 0)
+                {
+                    strParentFolder += strParentUrls[i] + "/";
+                }
+            }
+            SPCostFolders childFoldes = GetListFolderChilds(ListName, strParentFolder);
+            //递归加载子目录
+            foreach(SPCostFolder child in childFoldes)
+            {
+                SPCostFolders childs = LoadFolderChilds(ListName, strListUrl, child);
+                child.Childs = childs;
+            }
+            return childFoldes;
+        }
         #endregion
 
         #endregion

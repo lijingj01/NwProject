@@ -129,6 +129,23 @@ namespace SPDocumentWcfService
             return docHelper.UpdateFolderName(strListName, iFolderId, strNewFolderName);
         }
 
+        /// <summary>
+        /// 获取文档库里面的所有文件夹，并以层级的方式进行展示
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="ListName">列表名称</param>
+        /// <returns></returns>
+        public SPCostFolders GetListFullFolders(SPSetting setting, string ListName)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            return docHelper.GetListFullFolders(ListName);
+        }
+
+        public SPCostFolders GetListFolders(SPSetting setting, string ListName)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            return docHelper.GetListFolders(ListName);
+        }
         #endregion
 
         #region 文件上传相关方法
@@ -543,5 +560,7 @@ namespace SPDocumentWcfService
         {
             return new SPDocumentWcfService.SPListFields();
         }
+
+
     }
 }

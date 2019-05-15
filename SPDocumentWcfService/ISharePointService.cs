@@ -153,6 +153,16 @@ namespace SPDocumentWcfService
         bool DeleteFile(SPSetting setting, string ListName, int iFolderId, string FileName);
         #endregion
 
+        #region 文件夹操作方法
+        [OperationContract]
+        [ServiceKnownType(typeof(SPCostFolders))]
+        SPCostFolders GetListFullFolders(SPSetting setting, string ListName);
+
+        [OperationContract]
+        [ServiceKnownType(typeof(SPCostFolders))]
+        SPCostFolders GetListFolders(SPSetting setting, string ListName);
+        #endregion
+
         #endregion
 
         #region 列表库相关操作

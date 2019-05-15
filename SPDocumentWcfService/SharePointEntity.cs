@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
+using System.ServiceModel;
 using System.Text;
 using System.Web;
 using System.Xml;
@@ -19,6 +20,7 @@ namespace SPDocumentWcfService
     /// <summary>
     /// SharePoint实体对象基础类
     /// </summary>
+    [KnownType(typeof(SPCostFolder))]
     [DataContract]
     public class SPBaseClass
     {
@@ -101,14 +103,14 @@ namespace SPDocumentWcfService
         }
         #endregion
 
-        public SPBaseClass()
-        {
+        //public SPBaseClass()
+        //{
             //SPSite = System.Configuration.ConfigurationManager.AppSettings["SPSite"];
             //SPWeb = System.Configuration.ConfigurationManager.AppSettings["SPWeb"];
 
             //FileLocalRoot = System.Configuration.ConfigurationManager.AppSettings["FileCreateTempDir"];
             //FullWebUrl = SPSite + "/" + SPWeb + "/";
-        }
+        //}
     }
     #endregion
 
@@ -1069,12 +1071,14 @@ namespace SPDocumentWcfService
     #endregion
 
     #region 文件夹
-    [DataContract(IsReference = true)]
+    [DataContract]
     /// <summary>
     /// 对应的SharePoint文档库里面的文件夹信息
     /// </summary>
     public class SPCostFolder : SPBaseClass
     {
+        
+
         #region 属性
         [DataMember]
         /// <summary>
@@ -1118,10 +1122,8 @@ namespace SPDocumentWcfService
         [DataMember]
         public string ParentUrl
         {
-            get
-            {
-                return FileRef.Substring(0, FileRef.LastIndexOf("/"));
-            }
+            get;
+            set;
         }
         #endregion
 
@@ -1129,10 +1131,11 @@ namespace SPDocumentWcfService
 
         public SPCostFolder()
         {
-
+            Childs = new SPCostFolders();
         }
-
-        internal SPCostFolder(XmlNode ndListItems)
+        
+        #region 内部构造方法
+        internal void CreateFolder(XmlNode ndListItems)
         {
             //文件夹名称关键字
             string FolderNameKey = "ows_FileLeafRef";
@@ -1159,6 +1162,9 @@ namespace SPDocumentWcfService
                 FileLeafRef = strFolderName.Substring(strFolderName.IndexOf("#") + 1);
                 FileRef = strFolderUrl.Substring(strFolderUrl.IndexOf("#") + 1);
             }
+
+            FileFullRef = SPBaseSite + "/" + FileRef;
+            ParentUrl = FileRef.Substring(0, FileRef.LastIndexOf("/"));
         }
 
         /// <summary>
@@ -1166,7 +1172,7 @@ namespace SPDocumentWcfService
         /// </summary>
         /// <param name="ndListItems"></param>
         /// <param name="strFolderName"></param>
-        internal SPCostFolder(XmlNode ndListItems, string FolderName)
+        internal void CreateFolder(XmlNode ndListItems, string FolderName)
         {
             //文件夹名称关键字
             string FolderNameKey = "ows_FileLeafRef";
@@ -1197,22 +1203,17 @@ namespace SPDocumentWcfService
                     break;
                 }
             }
+            FileFullRef = SPBaseSite + "/" + FileRef;
+            ParentUrl = FileRef.Substring(0, FileRef.LastIndexOf("/"));
         }
-
         #endregion
 
-        #region 扩展属性
         /// <summary>
         /// 文档库完整地址
         /// </summary>
         [DataMember]
-        public string FileFullRef
-        {
-            get
-            {
-                return SPBaseSite + "/" + FileRef;
-            }
-        }
+        public string FileFullRef { set; get; }
+
         /// <summary>
         /// 对应的文档库名称
         /// </summary>
@@ -1225,18 +1226,26 @@ namespace SPDocumentWcfService
         /// <summary>
         /// 对应的库Url
         /// </summary>
+        [DataMember]
         public string ListUrl { get; set; }
+        #endregion
+
+        #region 扩展集合属性
+        [DataMember]
+        public SPCostFolders Childs { get; set; }
         #endregion
     }
 
-    [DataContract]
+    [Serializable]
+    [CollectionDataContract]
+    [KnownType(typeof(SPCostFolder))]
     public class SPCostFolders : List<SPCostFolder>
     {
         public SPCostFolders()
         {
 
         }
-
+        /*
         internal SPCostFolders(XmlNode ndListItems)
             : this()
         {
@@ -1272,6 +1281,43 @@ namespace SPDocumentWcfService
                 this.Add(folder);
             }
         }
+        */
+        #region 内部构造方法
+        internal void CreateFolders(XmlNode ndListItems)
+        {
+
+            //文件夹名称关键字
+            string FolderNameKey = "ows_FileLeafRef";
+            //文件夹地址关键字
+            string FolderUrlKey = "ows_FileRef";
+            //编号
+            string FolderID = "ows_ID";
+            //唯一编号
+            string FolderUniqueId = "ows_UniqueId";
+
+            XmlNamespaceManager ns = new XmlNamespaceManager(ndListItems.OwnerDocument.NameTable);
+            ns.AddNamespace("rs", "urn:schemas-microsoft-com:rowset");
+            ns.AddNamespace("z", "#RowsetSchema");
+            XmlNodeList nodes = ndListItems.SelectNodes(@"//z:row", ns);
+            foreach (XmlNode node in nodes)
+            {
+
+                string strFolderName = node.Attributes[FolderNameKey].Value;
+                string strFolderUrl = node.Attributes[FolderUrlKey].Value;
+                string strID = node.Attributes[FolderID].Value;
+                string strUID = node.Attributes[FolderUniqueId].Value;
+
+                SPCostFolder folder = new SPCostFolder()
+                {
+                    ID = Convert.ToInt32(strID),
+                    UniqueId = new Guid(strUID.Substring(strUID.IndexOf("#") + 1)),
+                    FileLeafRef = strFolderName.Substring(strFolderName.IndexOf("#") + 1),
+                    FileRef = strFolderUrl.Substring(strFolderUrl.IndexOf("#") + 1),
+                };
+                this.Add(folder);
+            }
+        }
+        #endregion
     }
 
     #endregion
