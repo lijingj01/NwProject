@@ -138,6 +138,10 @@ namespace SPDocumentWcfService
 
         [OperationContract]
         byte[] GetWebFileStream(SPSetting setting, string strWebUrl, string strListName);
+
+        [OperationContract]
+        [ServiceKnownType(typeof(SPWcfDocument))]
+        List<SPWcfDocument> GetFolderDocumentsByFullName(SPSetting setting, string ListName, string FolderListUrl, string FolderName);
         #endregion
 
         #region 文件删除的方法

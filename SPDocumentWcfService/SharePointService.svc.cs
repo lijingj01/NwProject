@@ -279,6 +279,26 @@ namespace SPDocumentWcfService
             }
             return wcfDocs;
         }
+        /// <summary>
+        /// 获取指定文件夹里面的所有文件集合
+        /// </summary>
+        /// <param name="setting">配置信息</param>
+        /// <param name="ListName">文档库名称</param>
+        /// <param name="FolderListUrl">父级目录</param>
+        /// <param name="FolderName">文件夹名称</param>
+        /// <returns></returns>
+        public List<SPWcfDocument> GetFolderDocumentsByFullName(SPSetting setting, string ListName, string FolderListUrl, string FolderName)
+        {
+            SharePointHelper docHelper = new SPDocumentWcfService.SharePointHelper(setting.SPUserId, setting.SPUserPwd, setting.SPUserDomain, setting.SPSite, setting.SPWeb, setting.ActionUser);
+            SPCostDocuments docs = docHelper.GetFolderDocuments(ListName, FolderListUrl, FolderName);
+            List<SPWcfDocument> wcfDocs = new List<SPWcfDocument>();
+            foreach (SPCostDocument doc in docs)
+            {
+                SPWcfDocument wcfDoc = SPDocToWcfDoc(doc);
+                wcfDocs.Add(wcfDoc);
+            }
+            return wcfDocs;
+        }
 
         private static SPWcfDocument SPDocToWcfDoc(SPCostDocument doc)
         {

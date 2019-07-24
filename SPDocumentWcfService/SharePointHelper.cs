@@ -1,14 +1,17 @@
 ﻿using JohnHolliday.Caml.Net;
+using Microsoft.SharePoint.Client;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Web;
 using System.Xml;
+using SP = Microsoft.SharePoint.Client;
 
 namespace SPDocumentWcfService
 {
@@ -161,6 +164,17 @@ namespace SPDocumentWcfService
         private string UPDATERETURNRIGHT = "0x00000000";
         #endregion
 
+        /// <summary>
+        /// 获取SharePoint客户端对象连接对象
+        /// </summary>
+        /// <returns></returns>
+        private SP.ClientContext CreateClientContext()
+        {
+            SP.ClientContext context = new SP.ClientContext(FullWebUrl);
+            context.Credentials = SPCredential;
+            return context;
+        }
+
         #endregion
 
         #region 构造函数扩展
@@ -209,10 +223,10 @@ namespace SPDocumentWcfService
                 SPCostFolder monthFolder = CreateSPFolder(ListName, strMonthFolderName);
                 if (monthFolder.ID > 0)
                 {
-                    string strNewFullDocUrl = SPBaseSite + "/" + monthFolder.FileRef + "/" + strFileName;
+                    string strNewFullDocUrl = SPBaseSite + "/" + monthFolder.FileRef + "/" + FileEscape(strFileName);
 
                     Guid? fileId = null;
-                    UpFileFullUrl = UploadFile(strFileName, fileData, strNewFullDocUrl
+                    UpFileFullUrl = NewUploadFile(strFileName, fileData, strNewFullDocUrl
                                                                     , ListName, monthFolder, 0, 0, string.Empty
                                                                     , out IsUpload, out fileId);
 
@@ -285,11 +299,11 @@ namespace SPDocumentWcfService
                 folder = CreateSPFolder(ListName, FolderName, DateTime.Now);
             }
 
-            string strNewFullDocUrl = SPBaseSite + "/" + folder.FileRef + "/" + strFileName;
+            string strNewFullDocUrl = SPBaseSite + "/" + folder.FileRef + "/" + FileEscape(strFileName);
             IsUpload = false;
 
             Guid? fileId = null;
-            UpFileFullUrl = UploadFile(strFileName, fileData, strNewFullDocUrl
+            UpFileFullUrl = NewUploadFile(strFileName, fileData, strNewFullDocUrl
                                                             , ListName, folder, 0, iPageNum, strDocumentType, out IsUpload, out fileId);
 
             strUploadMessage = UpFileFullUrl;
@@ -318,10 +332,10 @@ namespace SPDocumentWcfService
             //获取文件夹信息
             SPCostFolder folder = GetFolderInfo(ListName, FolderId);
 
-            string strNewFullDocUrl = SPBaseSite + "/" + folder.FileRef + "/" + strFileName;
+            string strNewFullDocUrl = SPBaseSite + "/" + folder.FileRef + "/" + FileEscape(strFileName);
 
             Guid? fileId = null;
-            UpFileFullUrl = UploadFile(strFileName, fileData, strNewFullDocUrl
+            UpFileFullUrl = NewUploadFile(strFileName, fileData, strNewFullDocUrl
                                                             , ListName, folder, 0, iPageNum, strDocumentType
                                                             , out IsUpload, out fileId);
 
@@ -424,6 +438,129 @@ namespace SPDocumentWcfService
             {
                 IsUpload = false;
                 return copyResults[0].ErrorMessage;
+            }
+        }
+
+        private string NewUploadFile(string strFileName, byte[] fileData, string strFullDocUrl
+                , string strListName, SPCostFolder folder, int iUserTaskId
+                , int iPageNum, string strDocumentType
+                , out bool IsUpload
+                , out Guid? fileId)
+        {
+            fileId = null;
+            //先将文件流转换成Stream
+            try
+            {
+                string contentType = "文档";
+                Stream stream = SysHelper.FileHelper.BytesToStream(fileData);
+                SP.ClientContext clientContext = CreateClientContext();
+                SP.Web web = clientContext.Web;
+                SP.List list = web.Lists.GetByTitle(strListName);
+                bool bTarFileExist = true;
+
+                string strNewFileName = FileEscape(strFileName);
+
+                string strDocumentUrl = "/" + folder.FileRef + "/" + strNewFileName;
+                #region 判断文件是否存在
+
+                Microsoft.SharePoint.Client.File targetFile = web.GetFileByServerRelativeUrl(strDocumentUrl);
+                targetFile.RefreshLoad();
+                clientContext.Load(targetFile);
+                try
+                {
+                    clientContext.ExecuteQuery();
+                }
+                catch
+                {
+                    bTarFileExist = false;
+                }
+
+                #endregion
+
+                #region 存在的文件是否需要签出
+                if (bTarFileExist)
+                {
+                    // If the target document is checked out by another user, execute UndoCheckOut.
+                    if (targetFile.CheckOutType != SP.CheckOutType.None)
+                    {
+                        targetFile.UndoCheckOut();
+                    }
+
+                    // Check out the target document before uploading.
+                    targetFile.CheckOut();
+                    clientContext.ExecuteQuery();
+                }
+                #endregion
+                //上传文件
+                Microsoft.SharePoint.Client.File.SaveBinaryDirect(clientContext, strDocumentUrl, stream, true);
+
+                #region 获取新上传的文件 更新类型
+
+                Microsoft.SharePoint.Client.File newFile = web.GetFileByServerRelativeUrl(strDocumentUrl);
+
+                newFile.RefreshLoad();
+                clientContext.Load(newFile);
+                clientContext.ExecuteQuery();
+
+                // Get target file ContentType.
+                SP.ContentType newFileContentType = null;
+                //if (!defaultContentTypes.Contains(contentType))
+                //{
+                SP.ContentTypeCollection listContentTypes = list.ContentTypes;
+                clientContext.Load(listContentTypes, types => types.Include(type => type.Id, type => type.Name, type => type.Parent));
+                var result = clientContext.LoadQuery(listContentTypes.Where(c => c.Name == contentType));
+                clientContext.ExecuteQuery();
+                newFileContentType = result.FirstOrDefault();
+
+                // Set new file ContentType with the correct value.
+                clientContext.Load(newFile.ListItemAllFields);
+                if (newFileContentType != null)
+                {
+                    newFile.ListItemAllFields["ContentTypeId"] = newFileContentType.Id.ToString();
+                    newFile.ListItemAllFields.Update();
+                }
+                //}
+
+                // Check in the docuemnt with a draft version.取消签入操作
+                //newFile.CheckIn(string.Empty, SP.CheckinType.MinorCheckIn);
+                // Excute the document upload.
+                clientContext.ExecuteQuery();
+
+                #endregion
+                if (newFile.Length > 0)
+                {
+                    fileId = newFile.UniqueId;
+
+                    #region 将文件上传信息记录下来
+
+                    int iFolderId = 0;
+                    string strFolderName = string.Empty;
+                    if (folder != null)
+                    {
+                        iFolderId = folder.ID;
+                        strFolderName = folder.FileLeafRef;
+                    }
+
+                    #region 保存到数据库
+                    AddUpFileLog(strListName, iFolderId, strFolderName, strNewFileName, newFile.UniqueId, strFullDocUrl, iUserTaskId, iPageNum, strDocumentType, fileData);
+                    #endregion
+
+                    #endregion
+
+                    IsUpload = true;
+                    return strFullDocUrl;
+                }
+                else
+                {
+                    IsUpload = false;
+                    return "文档上传失败！";
+                }
+               
+            }
+            catch (Exception ex)
+            {
+                IsUpload = false;
+                return ex.Message;
             }
         }
 
@@ -744,39 +881,20 @@ namespace SPDocumentWcfService
                         //iFolderId = folder.ID;
 
                         #region 文件夹记录起来
-                        try
-                        {
-                            Data.FileLogDataClassesDataContext fileDBContext = new Data.FileLogDataClassesDataContext();
-                            //避免重复记录
-                            Data.Folders dbfolder = fileDBContext.Folders.FirstOrDefault<Data.Folders>(c => c.SPWeb == this.SPWeb & c.ListName == ListName & c.FolderId == folder.ID);
-                            if (dbfolder == null)
-                            {
-                                dbfolder = new Data.Folders()
-                                {
-                                    SPSite = SPSite,
-                                    SPWeb = SPWeb,
-                                    ListName = ListName,
-                                    FolderId = folder.ID,
-                                    FolderName = folder.FileLeafRef,
-                                    FolderUniqueId = folder.UniqueId,
-                                    FileLeafRef = folder.FileLeafRef,
-                                    FileRef = folder.FileRef,
-                                    ParentUrl = folder.ParentUrl,
-                                    Created = DateTime.Now,
-                                    CreateUser = UserCode
-                                };
-
-                                fileDBContext.Folders.InsertOnSubmit(dbfolder);
-                                fileDBContext.SubmitChanges();
-                            }
-                        }
-                        catch (Exception ex) { }
+                        SaveFolderLog(ListName, folder);
                         #endregion
                     }
                     else
                     {
                         throw new Exception("文件夹创建失败：" + resultCreate);
                     }
+                }
+                else
+                {
+                    //特殊情况判断是否已经记录，没有记录的需要补充记录数据
+                    #region 文件夹记录起来
+                    SaveFolderLog(ListName, folder);
+                    #endregion
                 }
 
                 return folder;
@@ -785,6 +903,37 @@ namespace SPDocumentWcfService
             {
                 throw ex;
             }
+        }
+
+        private void SaveFolderLog(string ListName, SPCostFolder folder)
+        {
+            try
+            {
+                Data.FileLogDataClassesDataContext fileDBContext = new Data.FileLogDataClassesDataContext();
+                //避免重复记录
+                Data.Folders dbfolder = fileDBContext.Folders.FirstOrDefault<Data.Folders>(c => c.SPWeb == this.SPWeb & c.ListName == ListName & c.FolderId == folder.ID);
+                if (dbfolder == null)
+                {
+                    dbfolder = new Data.Folders()
+                    {
+                        SPSite = SPSite,
+                        SPWeb = SPWeb,
+                        ListName = ListName,
+                        FolderId = folder.ID,
+                        FolderName = folder.FileLeafRef,
+                        FolderUniqueId = folder.UniqueId,
+                        FileLeafRef = folder.FileLeafRef,
+                        FileRef = folder.FileRef,
+                        ParentUrl = folder.ParentUrl,
+                        Created = DateTime.Now,
+                        CreateUser = UserCode
+                    };
+
+                    fileDBContext.Folders.InsertOnSubmit(dbfolder);
+                    fileDBContext.SubmitChanges();
+                }
+            }
+            catch (Exception ex) { }
         }
 
         #endregion
@@ -1480,6 +1629,63 @@ namespace SPDocumentWcfService
 
                 //先获取文件夹信息
                 SPCostFolder folder = GetFolderInfoByDB(ListName, FolderName);
+
+                //获取文件夹的编号
+                SPListWebService.Lists listHelper = new SPListWebService.Lists()
+                {
+                    Url = FullWebUrl + ListUrl,
+                    Credentials = SPCredential
+                };
+                XmlDocument xmlDoc = new System.Xml.XmlDocument();
+
+                XmlNode ndQuery = xmlDoc.CreateNode(XmlNodeType.Element, "Query", "");
+                XmlNode ndViewFields = xmlDoc.CreateNode(XmlNodeType.Element, "ViewFields", "");
+                XmlNode ndQueryOptions = xmlDoc.CreateNode(XmlNodeType.Element, "QueryOptions", "");
+
+                //查询文件列表
+
+                ndViewFields.InnerXml = "<FieldRef Name='ID' />";
+
+                StringBuilder strQueryOptionsXml = new StringBuilder();
+                strQueryOptionsXml.Append("<QueryOptions>");
+                strQueryOptionsXml.Append("<IncludeMandatoryColumns>FALSE</IncludeMandatoryColumns>");
+                strQueryOptionsXml.Append("<DateInUtc>TRUE</DateInUtc>");
+                strQueryOptionsXml.Append("<Folder>" + folder.FileFullRef + "</Folder>");
+                strQueryOptionsXml.Append("</QueryOptions>");
+
+
+                ndQueryOptions.InnerXml = strQueryOptionsXml.ToString();
+
+                ndQuery.InnerXml = "";
+                //查询对应的文件
+                XmlNode ndListItems = listHelper.GetListItems(ListName, null, ndQuery, null, null, ndQueryOptions, null);
+
+                SPList listItem = GetListInfo(ListName);
+
+                SPCostDocuments items = new SPCostDocuments(ndListItems, listItem, folder);
+
+                return items;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        /// <summary>
+        /// 通过列表和文件夹名称获取对应的文件列表
+        /// </summary>
+        /// <param name="ListName">列表名称</param>
+        /// <param name="FolderListUrl">父级地址</param>
+        /// <param name="FolderName">文件夹名称</param>
+        /// <returns></returns>
+        public SPCostDocuments GetFolderDocuments(string ListName, string FolderListUrl, string FolderName)
+        {
+            try
+            {
+
+                //先获取文件夹信息
+                SPCostFolder folder = GetFolderInfo(ListName, FolderListUrl, FolderName);
 
                 //获取文件夹的编号
                 SPListWebService.Lists listHelper = new SPListWebService.Lists()

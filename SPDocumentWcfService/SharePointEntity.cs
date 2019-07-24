@@ -1164,7 +1164,10 @@ namespace SPDocumentWcfService
             }
 
             FileFullRef = SPBaseSite + "/" + FileRef;
-            ParentUrl = FileRef.Substring(0, FileRef.LastIndexOf("/"));
+            if (!string.IsNullOrEmpty(FileRef))
+            {
+                ParentUrl = FileRef.Substring(0, FileRef.LastIndexOf("/"));
+            }
         }
 
         /// <summary>
@@ -1204,7 +1207,10 @@ namespace SPDocumentWcfService
                 }
             }
             FileFullRef = SPBaseSite + "/" + FileRef;
-            ParentUrl = FileRef.Substring(0, FileRef.LastIndexOf("/"));
+            if (!string.IsNullOrEmpty(FileRef))
+            {
+                ParentUrl = FileRef.Substring(0, FileRef.LastIndexOf("/"));
+            }
         }
         #endregion
 
